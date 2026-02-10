@@ -179,7 +179,12 @@ function renderEditor() {
     const max = Math.max(pair.leftData.length, pair.rightData.length);
     
     for (let i = 0; i < max; i++) {
-        // Left
+        // Line Number Cell
+        const lineNum = document.createElement('div');
+        lineNum.className = 'line-num';
+        lineNum.innerText = i + 1; // 1-based index
+        
+        // Left Cell (Existing)
         const cellL = createCell(pair.leftData[i], i, 'left');
         
         // Controls
@@ -198,7 +203,8 @@ function renderEditor() {
 
         // Right
         const cellR = createCell(pair.rightData[i], i, 'right');
-        grid.append(cellL, controls, cellR);
+
+        grid.append(lineNum, cellL, controls, cellR);
     }
 }
 
@@ -217,6 +223,17 @@ function createCell(text, idx, side) {
             saveActiveFile(side);
         }
     });
+
+    div.addEventListener('input', () => {
+    // We don't want to re-render the whole grid (too slow), just update stats
+    // We need to sync THIS specific cell to the data array immediately
+    const pair = project.pairs.find(p => p.id === project.activePairId);
+    if (pair) {
+        if (side === 'left') pair.leftData[idx] = div.innerText;
+        else pair.rightData[idx] = div.innerText;
+        updateStats(); // Recalculate counts live!
+    }
+});
     
     return div;
 }
@@ -407,4 +424,26 @@ async function relinkFolder() {
             alert("Error accessing folder.");
         }
     }
+}
+
+function updateStats() {
+    const pair = project.pairs.find(p => p.id === project.activePairId);
+    if (!pair) {
+        document.getElementById('statsLeft').innerText = '';
+        document.getElementById('statsRight').innerText = '';
+        return;
+    }
+
+    // Helper to calculate
+    const calc = (lines) => {
+        // Join lines with space to avoid merging words across newlines
+        const fullText = lines.join(' ');
+        const chars = fullText.length;
+        // Simple word count: split by whitespace and filter empty strings
+        const words = fullText.split(/\s+/).filter(w => w.length > 0).length;
+        return `${words}w / ${chars}c`;
+    };
+
+    document.getElementById('statsLeft').innerText = calc(pair.leftData);
+    document.getElementById('statsRight').innerText = calc(pair.rightData);
 }

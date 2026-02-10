@@ -31,11 +31,29 @@
     </aside>
 
     <main class="editor-area">
-        <div class="toolbar">
+        <!-- <div class="toolbar">
             <h3 id="activeChapterTitle" style="margin:0; color:#334155;">Select a chapter to edit</h3>
             <div style="display:flex; gap:10px;">
                 <button id="btnSaveLeft" class="btn-save" disabled>💾 Save Left</button>
                 <button id="btnSaveRight" class="btn-save" disabled>💾 Save Right</button>
+            </div>
+        </div> -->
+
+        <div class="toolbar">
+            <div style="flex:1">
+                <h3 id="activeChapterTitle" style="margin:0;">Select a chapter</h3>
+            </div>
+
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
+                <button id="btnSaveLeft" class="btn-save" disabled>💾 Save Left</button>
+                <div id="statsLeft" style="font-size:10px; color:#64748b; font-family:monospace;"></div>
+            </div>
+
+            <div style="width:20px;"></div>
+
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
+                <button id="btnSaveRight" class="btn-save" disabled>💾 Save Right</button>
+                <div id="statsRight" style="font-size:10px; color:#64748b; font-family:monospace;"></div>
             </div>
         </div>
 

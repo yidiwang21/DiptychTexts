@@ -129,12 +129,24 @@ body {
 
 .grid { 
     display: grid; 
-    grid-template-columns: 1fr 80px 1fr; gap: 0; 
+    grid-template-columns: 40px 1fr 80px 1fr; 
+    gap: 0; 
     max-width: 1400px; 
     margin: 0 auto; 
     background: white; 
     border: 1px solid var(--border); 
     border-radius: 8px; 
+}
+
+.line-num {
+    padding: 1rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    background: #f1f5f9;
+    color: #94a3b8;
+    text-align: right;
+    font-size: 0.8rem;
+    user-select: none; /* Prevent selecting line numbers when copying text */
+    font-family: monospace;
 }
 
 .cell { 
