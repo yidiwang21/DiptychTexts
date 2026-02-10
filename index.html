@@ -14,7 +14,6 @@
         <div style="padding: 10px; background: #e2e8f0; border-bottom: 1px solid #cbd5e1; display:flex; gap:5px;">
             <button onclick="saveProject()" style="flex:1; font-size:0.8rem;">💾 Save Project</button>
             <button onclick="document.getElementById('projectLoader').click()" style="flex:1; font-size:0.8rem;">📂 Load Project</button>
-            <button onclick="relinkFolder()" title="Relink Source Folder" style="flex:1; font-size:0.8rem;">🔗 Relink</button>
             <button onclick="closeProject()" style="width:30px; font-size:0.8rem;" title="Close/New">↻</button>
     
             <input type="file" id="projectLoader" style="display:none" accept=".json" onchange="loadProject(this)">
@@ -40,8 +39,9 @@
         </div> -->
 
         <div class="toolbar">
-            <div style="flex:1">
+            <div style="flex:1; display:flex; align-items:center; gap:10px;">
                 <h3 id="activeChapterTitle" style="margin:0;">Select a chapter</h3>
+                <button onclick="refreshActivePair()" title="Reload from disk" style="font-size:0.8rem; padding:2px 8px;">↻ Refresh</button>
             </div>
 
             <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">

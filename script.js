@@ -1,3 +1,35 @@
+// --- INDEXED DB HELPERS (For saving folder permissions) ---
+const DB_NAME = 'TranslationToolDB';
+const DB_VERSION = 1;
+
+function getDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+            e.target.result.createObjectStore('handles');
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function saveDirectoryHandle(handle) {
+    const db = await getDB();
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').put(handle, 'project_root');
+    return tx.complete;
+}
+
+async function getDirectoryHandle() {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('handles', 'readonly');
+        const req = tx.objectStore('handles').get('project_root');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+    });
+}
+
 // --- STATE MANAGEMENT ---
 let project = {
     pairs: [], // Array of { id, name, leftData, rightData, leftHandle, rightHandle }
@@ -36,6 +68,8 @@ function renderSidebar() {
     project.pairs.forEach(pair => {
         const card = document.createElement('div');
         card.className = `pair-card ${pair.id === project.activePairId ? 'active' : ''}`;
+        const isLinkedL = !!pair.leftHandle;
+        const isLinkedR = !!pair.rightHandle;
         
         // Card HTML Structure
         card.innerHTML = `
@@ -44,13 +78,15 @@ function renderSidebar() {
                 <button class="ctrl-btn btn-del" onclick="deletePair('${pair.id}')" title="Delete Chapter">×</button>
             </div>
             <div class="drop-zones">
-                <div class="drop-zone ${pair.leftHandle ? 'loaded' : ''}" id="drop-left-${pair.id}">
-                    ${pair.leftHandle ? pair.leftHandle.name : 'Drop Chinese'}
+
+                <div class="drop-zone ${isLinkedL ? 'loaded' : ''}" style="${!isLinkedL ? 'border-color:#fca5a5; background:#fef2f2;' : ''}">
+                    ${isLinkedL ? pair.leftName : '⚠️ ' + (pair.leftName || 'Drop File')}
                 </div>
-                <div class="drop-zone ${pair.rightHandle ? 'loaded' : ''}" id="drop-right-${pair.id}">
-                    ${pair.rightHandle ? pair.rightHandle.name : 'Drop English'}
+                <div class="drop-zone ${isLinkedR ? 'loaded' : ''}" style="${!isLinkedR ? 'border-color:#fca5a5; background:#fef2f2;' : ''}">
+                    ${isLinkedR ? pair.rightName : '⚠️ ' + (pair.rightName || 'Drop File')}
                 </div>
             </div>
+            
         `;
 
         // Click on card to activate (unless clicking an input or button)
@@ -343,32 +379,76 @@ function saveProject() {
     a.click();
 }
 
-function loadProject(input) {
+async function loadProject(input) {
     const file = input.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => { // Make this async!
         try {
             const data = JSON.parse(e.target.result);
             
-            // 1. Load data
+            // 1. Load data structure (with null handles)
             project.pairs = data.pairs.map(p => ({
                 ...p,
-                leftHandle: null, // Handles are lost on reload
-                rightHandle: null
+                leftHandle: null,
+                rightHandle: null,
+                // Ensure we have fallback data if relink fails
+                leftData: p.leftData || [],
+                rightData: p.rightData || []
             }));
-            
-            // 2. Reset UI
-            project.activePairId = null;
-            if (project.pairs.length > 0) {
-                setActivePair(project.pairs[0].id);
-            } else {
-                renderSidebar();
-                renderEditor();
+
+            // 2. SMART AUTO-RELINK
+            // Try to get the saved handle from the browser database first
+            let dirHandle = await getDirectoryHandle();
+            let usedSavedHandle = false;
+
+            if (dirHandle) {
+                // We found a saved handle! We just need to verify permission.
+                // This pops up a small "Allow/Block" prompt, NOT the file explorer.
+                const opts = { mode: 'readwrite' };
+                if ((await dirHandle.queryPermission(opts)) === 'granted' || 
+                    (await dirHandle.requestPermission(opts)) === 'granted') {
+                    usedSavedHandle = true;
+                }
             }
-            input.value = ''; // Reset input so we can load same file again if needed
-            alert("Project loaded! Note: You will need to re-link files to save to disk.");
+
+            // If we didn't find a saved handle (or user denied), ask them to pick one manually
+            if (!usedSavedHandle) {
+                if (confirm("Click OK to select your source folder to link files.")) {
+                    try {
+                        dirHandle = await window.showDirectoryPicker();
+                        // Save this new handle for next time!
+                        await saveDirectoryHandle(dirHandle); 
+                    } catch (err) {
+                        console.warn("User cancelled.");
+                    }
+                }
+            }
+
+            // 3. If we have a handle (either saved or new), scan it
+            if (dirHandle) {
+                let matches = 0;
+                // ... (Your existing loop logic here) ...
+                for await (const entry of dirHandle.values()) {
+                    if (entry.kind !== 'file') continue;
+                    project.pairs.forEach(pair => {
+                        if (pair.leftName === entry.name) { pair.leftHandle = entry; matches++; }
+                        if (pair.rightName === entry.name) { pair.rightHandle = entry; matches++; }
+                    });
+                }
+                renderSidebar();
+                alert(`Linked ${matches} files successfully!`);
+            }
+
+            // 3. Reset UI
+            project.activePairId = null;
+            renderSidebar();
+            if (project.pairs.length > 0) setActivePair(project.pairs[0].id);
+            else renderEditor();
+            
+            input.value = ''; // Reset input
+            
         } catch (err) {
             alert("Invalid Project File");
             console.error(err);
@@ -446,4 +526,35 @@ function updateStats() {
 
     document.getElementById('statsLeft').innerText = calc(pair.leftData);
     document.getElementById('statsRight').innerText = calc(pair.rightData);
+}
+
+async function refreshActivePair() {
+    const pair = project.pairs.find(p => p.id === project.activePairId);
+    if (!pair) return;
+
+    // Confirm before overwriting unsaved changes in the tool
+    if (!confirm("Reload from disk? Any unsaved edits in this tool will be lost.")) {
+        return;
+    }
+
+    try {
+        // Reload Left
+        if (pair.leftHandle) {
+            const file = await pair.leftHandle.getFile();
+            pair.leftData = (await file.text()).trimEnd().split(/\r?\n/);
+        }
+
+        // Reload Right
+        if (pair.rightHandle) {
+            const file = await pair.rightHandle.getFile();
+            pair.rightData = (await file.text()).trimEnd().split(/\r?\n/);
+        }
+
+        renderEditor();
+        updateStats();
+        alert("Refreshed!");
+    } catch (err) {
+        console.error(err);
+        alert("Error reloading files. Ensure they still exist and permissions are granted.");
+    }
 }
