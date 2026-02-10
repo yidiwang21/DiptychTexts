@@ -3,43 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Alignment Tool</title>
+    <title>Side-by-Side Alignment Project</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="toolbar">
-    <div style="display:flex; gap:20px;">
-        <div class="file-group">
-            <span class="file-label">Left Source (Chinese)</span>
-            <div style="display:flex; gap:5px;">
-                <button id="btnOpenLeft">📂 Open File</button>
-                <button id="btnSaveLeft" class="btn-save" disabled>💾 Save</button>
-            </div>
+<div class="app-layout">
+    
+    <aside class="sidebar">
+        <div style="padding: 10px; background: #e2e8f0; border-bottom: 1px solid #cbd5e1; display:flex; gap:5px;">
+            <button onclick="saveProject()" style="flex:1; font-size:0.8rem;">💾 Save Project</button>
+            <button onclick="document.getElementById('projectLoader').click()" style="flex:1; font-size:0.8rem;">📂 Load Project</button>
+            <button onclick="relinkFolder()" title="Relink Source Folder" style="flex:1; font-size:0.8rem;">🔗 Relink</button>
+            <button onclick="closeProject()" style="width:30px; font-size:0.8rem;" title="Close/New">↻</button>
+    
+            <input type="file" id="projectLoader" style="display:none" accept=".json" onchange="loadProject(this)">
+        </div>
+
+        <div class="sidebar-header">
+            <h2>Project Explorer</h2>
+            <button id="btnAddPair" class="btn-primary">+ New Chapter</button>
         </div>
         
-        <div class="file-group">
-            <span class="file-label">Right Source (English)</span>
-            <div style="display:flex; gap:5px;">
-                <button id="btnOpenRight">📂 Open File</button>
-                <button id="btnSaveRight" class="btn-save" disabled>💾 Save</button>
+        <div id="pairList" class="pair-list">
+            <div class="empty-state">No chapters yet. Click "+ New Chapter".</div>
+        </div>
+    </aside>
+
+    <main class="editor-area">
+        <div class="toolbar">
+            <h3 id="activeChapterTitle" style="margin:0; color:#334155;">Select a chapter to edit</h3>
+            <div style="display:flex; gap:10px;">
+                <button id="btnSaveLeft" class="btn-save" disabled>💾 Save Left</button>
+                <button id="btnSaveRight" class="btn-save" disabled>💾 Save Right</button>
             </div>
         </div>
-    </div>
-    <div style="font-size: 0.8rem; color: #64748b;">
-        Hover center to edit. <strong>Ctrl+S</strong> to save active side.
-    </div>
-</div>
 
-<div class="container">
-    <div id="grid" class="grid">
-        <div style="grid-column: 1/-1; padding: 3rem; text-align: center; color: #94a3b8;">
-            Click "Open File" to load your documents.
+        <div class="container">
+            <div id="grid" class="grid">
+                <div style="grid-column: 1/-1; padding: 3rem; text-align: center; color: #94a3b8;">
+                    Select or Create a Chapter in the sidebar.
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
 </div>
 
 <script src="script.js"></script>
-
 </body>
 </html>

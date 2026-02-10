@@ -3,108 +3,197 @@
     --bg: #f8fafc;
     --border: #e2e8f0;
     --highlight: #fef9c3;
-    --danger: #ef4444;
+    --sidebar-w: 300px;
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     margin: 0;
-    display: flex;
-    flex-direction: column;
     height: 100vh;
     background: var(--bg);
     color: #334155;
+    overflow: hidden; /* Prevent body scroll, let containers scroll */
 }
 
-/* Toolbar */
-.toolbar {
-    padding: 1rem;
-    background: white;
-    border-bottom: 1px solid var(--border);
+/* Layout Containers */
+.app-layout {
     display: flex;
-    gap: 2rem;
-    align-items: center;
-    justify-content: space-between;
+    height: 100%;
+    width: 100%;
 }
 
-.file-group { display: flex; flex-direction: column; gap: 5px; }
-.file-label { font-size: 0.75rem; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+/* SIDEBAR STYLES */
+.sidebar {
+    width: var(--sidebar-w);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+}
 
-button {
-    padding: 0.5rem 1rem;
-    border: 1px solid #cbd5e1;
-    border-radius: 4px;
-    cursor: pointer;
+.sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    background: #f1f5f9;
+}
+
+.sidebar-header h2 { font-size: 1.1rem; margin: 0 0 0.5rem 0; }
+
+.pair-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    background: #f8fafc;
+}
+
+/* Sidebar Cards (The Pair Items) */
+.pair-card {
     background: white;
-    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
     transition: all 0.2s;
 }
 
-button:hover { background: #f1f5f9; }
-.btn-save { background: #dcfce7; border-color: #86efac; color: #166534; }
-.btn-save:hover { background: #bbf7d0; }
-.btn-save:disabled { background: #f1f5f9; color: #cbd5e1; border-color: #e2e8f0; cursor: not-allowed; }
-
-/* Main Area */
-.container { flex: 1; overflow-y: auto; padding: 2rem; }
-
-/* The Grid - UPDATED LAYOUT */
-.grid {
-    display: grid;
-    /* Changed middle column to 80px to fit side-by-side buttons */
-    grid-template-columns: 1fr 80px 1fr;
-    gap: 0;
-    max-width: 1400px;
-    margin: 0 auto;
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+.pair-card:hover { 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+    border-color: #cbd5e1; 
 }
 
-.cell {
-    padding: 1rem;
-    border-bottom: 1px solid var(--border);
-    outline: none;
-    line-height: 1.6;
-    min-height: 1.5rem;
+.pair-card.active { 
+    border-color: var(--primary); 
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.1); 
 }
 
-.cell:focus { background: #fffbeb; box-shadow: inset 0 0 0 2px var(--primary); }
-.empty-row { background: repeating-linear-gradient(45deg, #f8fafc, #f8fafc 10px, #f1f5f9 10px, #f1f5f9 20px); }
+.pair-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 8px; 
+}
 
-/* Controls - UPDATED LAYOUT */
-.controls {
+.pair-title { 
+    font-weight: 600; 
+    font-size: 0.9rem; 
+    border: none; 
+    background: transparent; 
+    width: 100%; 
+}
+
+.pair-title:focus { 
+    background: #f1f5f9; 
+    outline: none; 
+}
+
+.drop-zones { display: flex; gap: 5px; }
+.drop-zone {
+    flex: 1;
+    border: 1px dashed #cbd5e1;
+    border-radius: 4px;
+    padding: 15px 5px;
+    text-align: center;
+    font-size: 0.7rem;
+    color: #94a3b8;
+    background: #fafafa;
+    transition: background 0.2s;
+}
+.drop-zone.loaded { 
+    background: #dcfce7; 
+    border-color: #86efac; 
+    color: #166534; 
+    border-style: solid; 
+}
+
+.drop-zone:hover { 
+    background: #e2e8f0; 
+}
+
+/* MAIN EDITOR AREA */
+.editor-area {
+    flex: 1;
     display: flex;
-    flex-direction: row; /* Horizontal layout */
-    gap: 4px;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 1px solid var(--border);
-    background: #f8fafc;
-    opacity: 0.1;
-    transition: opacity 0.2s;
+    flex-direction: column;
+    min-width: 0; /* Prevents flexbox overflow issues */
 }
 
-.grid > div:hover + .controls, 
-.controls:hover { 
+/* Reusing your Grid Styles */
+.toolbar { padding: 1rem; background: white; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+
+.container { 
+    flex: 1; 
+    overflow-y: auto; 
+    padding: 2rem; 
+}
+
+.grid { 
+    display: grid; 
+    grid-template-columns: 1fr 80px 1fr; gap: 0; 
+    max-width: 1400px; 
+    margin: 0 auto; 
+    background: white; 
+    border: 1px solid var(--border); 
+    border-radius: 8px; 
+}
+
+.cell { 
+    padding: 1rem; 
+    border-bottom: 1px solid var(--border); 
+    outline: none; 
+    line-height: 1.6; 
+    min-height: 1.5rem; 
+}
+
+.controls { 
+    display: flex; 
+    gap: 4px; 
+    justify-content: center; 
+    background: #f8fafc; opacity: 0.1; 
+    transition: opacity 0.2s; 
+    border-bottom: 1px solid var(--border); 
+}
+
+.controls:hover, .grid > div:hover + .controls { 
     opacity: 1; 
 }
 
-.ctrl-btn {
-    border: none;
-    background: none;
-    color: #94a3b8;
-    font-size: 14px;
-    cursor: pointer;
-    padding: 4px;
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.ctrl-btn { 
+    border: none; 
+    background: none; 
+    color: #94a3b8; 
+    cursor: pointer; 
+    padding: 4px; 
+    width: 24px; 
 }
 
-.ctrl-btn:hover { color: var(--primary); background: #e2e8f0; }
-.btn-del:hover { color: var(--danger); background: #fee2e2; }
+.ctrl-btn:hover { 
+    color: var(--primary); 
+    background: #e2e8f0; 
+}
+
+.btn-del:hover { 
+    color: #ef4444; 
+    background: #fee2e2; 
+}
+
+.btn-primary { 
+    background: var(--primary); 
+    color: white; 
+    border: none; 
+    padding: 6px 12px; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    width: 100%; 
+}
+
+.btn-primary:hover { 
+    background: #1d4ed8; 
+}
+
+.empty-state { 
+    text-align: center; 
+    color: #94a3b8; 
+    font-size: 0.9rem; 
+    padding-top: 2rem; 
+}
