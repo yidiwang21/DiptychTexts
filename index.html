@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Alignment Tool</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="toolbar">
+    <div style="display:flex; gap:20px;">
+        <div class="file-group">
+            <span class="file-label">Left Source (Chinese)</span>
+            <div style="display:flex; gap:5px;">
+                <button id="btnOpenLeft">📂 Open File</button>
+                <button id="btnSaveLeft" class="btn-save" disabled>💾 Save</button>
+            </div>
+        </div>
+        
+        <div class="file-group">
+            <span class="file-label">Right Source (English)</span>
+            <div style="display:flex; gap:5px;">
+                <button id="btnOpenRight">📂 Open File</button>
+                <button id="btnSaveRight" class="btn-save" disabled>💾 Save</button>
+            </div>
+        </div>
+    </div>
+    <div style="font-size: 0.8rem; color: #64748b;">
+        Hover center to edit. <strong>Ctrl+S</strong> to save active side.
+    </div>
+</div>
+
+<div class="container">
+    <div id="grid" class="grid">
+        <div style="grid-column: 1/-1; padding: 3rem; text-align: center; color: #94a3b8;">
+            Click "Open File" to load your documents.
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
