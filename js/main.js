@@ -48,6 +48,29 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("View Toggle Button not found in HTML!");
     }
 
+    // --- WIDTH SLIDER LOGIC ---
+    const slider = document.getElementById('widthSlider');
+    const grid = document.getElementById('grid');
+
+    if (slider && grid) {
+        // 1. Function to apply width
+        const setWidth = (val) => {
+            grid.style.maxWidth = val + '%';
+            slider.value = val; // Sync slider UI
+        };
+
+        // 2. Load saved preference (default to 95% if not set)
+        const savedWidth = localStorage.getItem('editorWidth') || 95;
+        setWidth(savedWidth);
+
+        // 3. Listen for changes
+        slider.addEventListener('input', (e) => {
+            const val = e.target.value;
+            setWidth(val);
+            localStorage.setItem('editorWidth', val);
+        });
+    }
+
 });
 
 // --- CONTROLLER FUNCTIONS (Orchestrators) ---
