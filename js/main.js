@@ -29,9 +29,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 2000);
 
     // View Toggle
-    const toggleBtn = document.getElementById('btnToggleView');
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', () => {
+    const btnToggleView = document.getElementById('btnToggleView');
+    if (btnToggleView) {
+        btnToggleView.addEventListener('click', () => {
             const grid = document.getElementById('grid');
             grid.classList.toggle('document-mode');
             
@@ -82,6 +82,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     setInterval(() => {
         FileSystem.saveAppState();
     }, 5000);
+
+    // --- SIDEBAR TOGGLE LOGIC ---
+    const sidebar = document.querySelector('.sidebar');
+    const btnToggleSidebar = document.getElementById('btnToggleSidebar');
+
+    if (sidebar && btnToggleSidebar) {
+        // 1. Click Handler
+        btnToggleSidebar.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            // Save state
+            const isClosed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isClosed);
+        });
+
+        // 2. Restore State on Load
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            sidebar.classList.add('collapsed');
+        }
+    }
 
 });
 

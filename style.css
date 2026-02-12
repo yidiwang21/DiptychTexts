@@ -29,6 +29,14 @@ body {
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
+    transition: width 0.3s ease, padding 0.3s ease; /* Smooth slide */
+    overflow: hidden; /* Hide content when collapsed */
+    white-space: nowrap; /* Prevent text wrapping while closing */
+}
+
+.sidebar.collapsed {
+    width: 0;
+    border-right: none;
 }
 
 .sidebar-header {
