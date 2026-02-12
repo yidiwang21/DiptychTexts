@@ -1,10 +1,10 @@
 // js/state.js
 
-export const APP_VERSION = "0.7.0";
+export const APP_VERSION = "0.7.1";
 
 export const APP_CONSTANTS = {
     DB_NAME: 'TranslationToolDB',
-    DB_VERSION: 1
+    DB_VERSION: 2
 };
 
 // The main state object

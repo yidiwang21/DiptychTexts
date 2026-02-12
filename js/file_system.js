@@ -5,7 +5,15 @@ function getDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(APP_CONSTANTS.DB_NAME, APP_CONSTANTS.DB_VERSION);
         request.onupgradeneeded = (e) => {
-            e.target.result.createObjectStore('handles');
+            const db = e.target.result;
+            // e.target.result.createObjectStore('handles');
+            if (!db.objectStoreNames.contains('handles')) {
+                db.createObjectStore('handles');
+            }
+            // Create app_state store if missing (NEW)
+            if (!db.objectStoreNames.contains('app_state')) {
+                db.createObjectStore('app_state');
+            }
         };
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
@@ -143,4 +151,40 @@ export async function checkForExternalChanges() {
     }
 
     return changed;
+}
+
+// ---- APP STATE PERSISTENCE (for UI state, not file handles) ----
+export async function saveAppState() {
+    const db = await getDB();
+    const tx = db.transaction('app_state', 'readwrite');
+    
+    // We strip out the file handles because they can't be saved in this JSON blob
+    // (We rely on the 'handles' store and auto-relink for that)
+    const cleanState = {
+        name: project.name,
+        activePairId: project.activePairId,
+        pairs: project.pairs.map(p => ({
+            id: p.id,
+            name: p.name,
+            leftName: p.leftName,
+            rightName: p.rightName,
+            leftData: p.leftData,
+            rightData: p.rightData,
+            leftLastModified: p.leftLastModified,
+            rightLastModified: p.rightLastModified
+        }))
+    };
+
+    tx.objectStore('app_state').put(cleanState, 'current_session');
+    return tx.complete;
+}
+
+export async function loadAppState() {
+    const db = await getDB();
+    return new Promise((resolve) => {
+        const tx = db.transaction('app_state', 'readonly');
+        const req = tx.objectStore('app_state').get('current_session');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+    });
 }

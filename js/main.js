@@ -5,7 +5,7 @@ import * as SidebarUI from './ui_sidebar.js';
 import * as EditorUI from './ui_editor.js';
 
 // --- INITIALIZATION ---
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     
     // Hook up Static Buttons
     document.getElementById('btnAddPair').addEventListener('click', handleNewPair);
@@ -70,6 +70,18 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('editorWidth', val);
         });
     }
+
+    // SESSION RESTORE AND AUTO-SAVE
+    const restored = await ProjectManager.restoreSession();
+    if (restored) {
+        refreshAllUI();
+        console.log("Session restored!");
+    }
+
+    // 2. START AUTO-SAVE LOOP (Every 5 seconds)
+    setInterval(() => {
+        FileSystem.saveAppState();
+    }, 5000);
 
 });
 

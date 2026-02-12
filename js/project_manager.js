@@ -1,5 +1,43 @@
 import { project } from './state.js';
-import { getDirectoryHandle, saveDirectoryHandle } from './file_system.js';
+import { loadAppState, getDirectoryHandle, saveDirectoryHandle } from './file_system.js';
+
+// --- restore the session and try to reconnect the files
+export async function restoreSession() {
+    const savedState = await loadAppState();
+    if (!savedState) return false;
+
+    // 1. Restore Data
+    project.name = savedState.name || "Untitled Project";
+    project.activePairId = savedState.activePairId;
+    project.pairs = savedState.pairs.map(p => ({
+        ...p,
+        leftHandle: null,  // Handles are lost on reload
+        rightHandle: null,
+        leftDirty: false,  // Reset dirty flags
+        rightDirty: false,
+        leftExternalChange: false,
+        rightExternalChange: false
+    }));
+
+    // 2. Try Auto-Relink (Silent)
+    // We try to grab the folder handle again. 
+    // Note: The browser might require a click to grant permission again, 
+    // so we just try silently. If it fails, dots stay gray until user clicks something.
+    try {
+        const dirHandle = await getDirectoryHandle();
+        if (dirHandle) {
+            const opts = { mode: 'readwrite' };
+            // Check if we still have permission (rare on reload, but possible)
+            if ((await dirHandle.queryPermission(opts)) === 'granted') {
+                await scanAndLink(dirHandle);
+            }
+        }
+    } catch (e) {
+        console.log("Auto-relink waiting for user gesture");
+    }
+
+    return true;
+}
 
 export function createNewPair() {
     const id = Date.now().toString();
