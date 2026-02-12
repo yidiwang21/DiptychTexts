@@ -20,12 +20,27 @@
         </div>
 
         <div class="sidebar-header">
-            <h2>Project Explorer</h2>
-            <button id="btnAddPair" class="btn-primary">+ New Chapter</button>
+            <!-- <input type="text" id="projectNameInput" value="Untitled Project" 
+                style="width:100%; font-size:1.1rem; font-weight:bold; border:1px solid transparent; background:transparent; margin-bottom:0.5rem; padding:4px;"
+                onfocus="this.style.background='#fff'; this.style.borderColor='#cbd5e1'"
+                onblur="this.style.background='transparent'; this.style.borderColor='transparent'"
+                onchange="project.name = this.value"
+            > -->
+            <input type="text" id="projectNameInput" value="Untitled Project" 
+                style="width:100%; font-size:1.1rem; font-weight:bold; border:1px solid transparent; background:transparent; margin-bottom:0.5rem; padding:4px;"
+                onfocus="this.style.background='#fff'; this.style.borderColor='#cbd5e1'"
+                onblur="this.style.background='transparent'; this.style.borderColor='transparent'"
+                onchange="updateProjectName(this.value)"
+            >
+            <button id="btnAddPair" class="btn-primary" style="width:100%">+ New Chapter</button>
         </div>
         
         <div id="pairList" class="pair-list">
             <div class="empty-state">No chapters yet. Click "+ New Chapter".</div>
+        </div>
+
+        <div style="margin-top:auto; padding:10px; font-size:0.7rem; color:#ccc; text-align:center;">
+            v<span id="appVersion"></span>
         </div>
     </aside>
 
@@ -46,14 +61,18 @@
 
             <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
                 <button id="btnSaveLeft" class="btn-save" disabled>💾 Save Left</button>
-                <div id="statsLeft" style="font-size:10px; color:#64748b; font-family:monospace;"></div>
+                <div style="display:flex; align-items:center;">
+                    <span id="dotLeft" class="sync-dot" title="Sync Status"></span> <div id="statsLeft" style="font-size:10px; color:#64748b; font-family:monospace;"></div>
+                </div>
             </div>
 
             <div style="width:20px;"></div>
 
             <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
                 <button id="btnSaveRight" class="btn-save" disabled>💾 Save Right</button>
-                <div id="statsRight" style="font-size:10px; color:#64748b; font-family:monospace;"></div>
+                <div style="display:flex; align-items:center;">
+                    <span id="dotRight" class="sync-dot" title="Sync Status"></span> <div id="statsRight" style="font-size:10px; color:#64748b; font-family:monospace;"></div>
+                </div>
             </div>
         </div>
 
@@ -67,6 +86,6 @@
     </main>
 </div>
 
-<script src="script.js"></script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

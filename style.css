@@ -150,7 +150,7 @@ body {
 }
 
 .cell { 
-    padding: 1rem; 
+    padding: 0.5rem; 
     border-bottom: 1px solid var(--border); 
     outline: none; 
     line-height: 1.6; 
@@ -208,4 +208,28 @@ body {
     color: #94a3b8; 
     font-size: 0.9rem; 
     padding-top: 2rem; 
+}
+
+.sync-dot {
+    height: 8px;
+    width: 8px;
+    background-color: #bbb; /* Gray = No file linked */
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+    transition: background-color 0.3s;
+}
+
+.sync-dot.green { background-color: #22c55e; box-shadow: 0 0 4px #86efac; } /* Synced */
+.sync-dot.red { background-color: #ef4444; box-shadow: 0 0 4px #fca5a5; }   /* Unsaved */
+.sync-dot.orange { 
+    background-color: #f97316; 
+    box-shadow: 0 0 4px #fdba74; 
+    animation: pulse 2s infinite; /* Make it pulse so you notice! */
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
 }

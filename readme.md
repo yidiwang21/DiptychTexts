@@ -9,3 +9,6 @@ todos:
 1. Enable comments 
     1. first do it locally
     1. later I should host a server. By granting each user an access code and an id, they should be able to comment at text-line-level.
+
+Bug: project name not loaded
+Bug: reverse sync (local file -> tool) stats not displaying correctly. (watcher's problem)
