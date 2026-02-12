@@ -7,7 +7,7 @@ import * as EditorUI from './ui_editor.js';
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     
-    // 1. Hook up Static Buttons
+    // Hook up Static Buttons
     document.getElementById('btnAddPair').addEventListener('click', handleNewPair);
     document.getElementById('btnSaveLeft').addEventListener('click', () => handleSave('left'));
     document.getElementById('btnSaveRight').addEventListener('click', () => handleSave('right'));
@@ -17,16 +17,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('appVersion').innerText = APP_VERSION;
 
-    // 2. Initial Render
+    // Initial Render
     refreshAllUI();
 
-    // 3. Start Polling for Changes
+    // Start Polling for Changes
     setInterval(async () => {
         const changed = await FileSystem.checkForExternalChanges();
         if (changed) {
             EditorUI.updateStats(); // Only update dots, don't re-render whole grid
         }
     }, 2000);
+
+    // View Toggle
+    const toggleBtn = document.getElementById('btnToggleView');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            const grid = document.getElementById('grid');
+            grid.classList.toggle('document-mode');
+            
+            // Optional: Save preference
+            const isDocMode = grid.classList.contains('document-mode');
+            localStorage.setItem('viewMode', isDocMode ? 'document' : 'grid');
+        });
+
+        // Load saved preference
+        if (localStorage.getItem('viewMode') === 'document') {
+            document.getElementById('grid').classList.add('document-mode');
+        }
+    } else {
+        console.error("View Toggle Button not found in HTML!");
+    }
+
 });
 
 // --- CONTROLLER FUNCTIONS (Orchestrators) ---

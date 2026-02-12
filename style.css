@@ -131,7 +131,7 @@ body {
     display: grid; 
     grid-template-columns: 40px 1fr 80px 1fr; 
     gap: 0; 
-    max-width: 1400px; 
+    max-width: 90%; /* was 1400px; */
     margin: 0 auto; 
     background: white; 
     border: 1px solid var(--border); 
@@ -233,3 +233,86 @@ body {
     50% { opacity: 0.5; }
     100% { opacity: 1; }
 }
+
+
+/* --- DOCUMENT MODE (Compact & Continuous) --- */
+
+/* 1. The Container */
+.grid.document-mode {
+    background-color: white; 
+    border: 1px solid #e2e8f0; 
+    border-radius: 4px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    
+    /* Reduced outer padding */
+    padding: 20px; 
+    gap: 0;
+    
+    /* CRITICAL: Override column widths for maximum compactness */
+    /* [LineNum: 25px] [Text: Auto] [Controls: 30px] [Text: Auto] */
+    grid-template-columns: 25px 1fr 30px 1fr; 
+}
+
+/* 2. The Text Cells */
+.grid.document-mode .cell {
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    margin: 0;
+    
+    /* Compact Padding: 4px top/bottom, 8px left/right */
+    padding: 4px 8px; 
+    
+    /* Typography */
+    font-size: 1rem;
+    line-height: 1.5; /* Tighter line height */
+    color: #1e293b;
+    font-family: 'Georgia', 'Cambria', serif; 
+}
+
+/* 3. The Line Numbers */
+.grid.document-mode .line-num {
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    font-size: 0.65rem;
+    text-align: right;
+    
+    /* Align number with the first line of text */
+    padding: 8px 4px 0 0; 
+}
+
+/* 4. The Controls (Middle Gutter) */
+.grid.document-mode .controls {
+    background: transparent;
+    border: none;
+    opacity: 0;
+    transition: opacity 0.1s;
+    
+    /* Compact controls */
+    padding: 0;
+    gap: 0;
+    align-items: center;
+}
+
+.grid.document-mode .controls:hover {
+    opacity: 1;
+}
+
+/* 5. Focus State */
+.grid.document-mode .cell:focus {
+    background-color: #f8fafc;
+    outline: none;
+    position: relative; 
+    z-index: 10;
+    /* Blue marker on the left */
+    box-shadow: inset 3px 0 0 #3b82f6; 
+}
+
+/* Optional: Add a vertical divider line in the middle? */
+/* If you want a vertical line separating English/Chinese, uncomment this: */
+/* .grid.document-mode .controls {
+    border-left: 1px solid #f1f5f9;
+} 
+*/
