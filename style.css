@@ -43,6 +43,9 @@ body {
     padding: 1rem;
     border-bottom: 1px solid var(--border);
     background: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Adds nice space between Title and Button */
 }
 
 .sidebar-header h2 { font-size: 1.1rem; margin: 0 0 0.5rem 0; }
@@ -173,6 +176,9 @@ body {
     background: #f8fafc; opacity: 0.1; 
     transition: opacity 0.2s; 
     border-bottom: 1px solid var(--border); 
+    align-items: flex-start; /* Align to top of row */
+    padding-top: 6px;        /* Match text padding */
+    gap: 8px;                /* Space between Left set and Right set */
 }
 
 .controls:hover, .grid > div:hover + .controls { 
@@ -180,17 +186,30 @@ body {
 }
 
 .ctrl-btn { 
-    border: none; 
+    /* border: none; 
     background: none; 
     color: #94a3b8; 
     cursor: pointer; 
     padding: 4px; 
     width: 24px; 
+    height: 24px;
+    line-height: 1;
+    border-radius: 4px; */
+    border: none;
+    background: none;
+    color: #cbd5e1; /* Lighter gray by default */
+    cursor: pointer;
+    font-size: 10px;      /* Smaller icon */
+    padding: 4px 2px;     /* Minimal padding */
+    width: auto;          /* Remove fixed width */
+    height: auto;         /* Remove fixed height */
+    line-height: 1;
 }
 
 .ctrl-btn:hover { 
     color: var(--primary); 
     background: #e2e8f0; 
+    border-radius: 2px;
 }
 
 .btn-del:hover { 
@@ -259,7 +278,8 @@ body {
     
     /* CRITICAL: Override column widths for maximum compactness */
     /* [LineNum: 25px] [Text: Auto] [Controls: 30px] [Text: Auto] */
-    grid-template-columns: 25px 1fr 30px 1fr; 
+    /* grid-template-columns: 25px 1fr 30px 1fr;  */
+    grid-template-columns: 25px 1fr 65px 1fr;
 }
 
 /* 2. The Text Cells */
@@ -319,9 +339,110 @@ body {
     box-shadow: inset 3px 0 0 #3b82f6; 
 }
 
-/* Optional: Add a vertical divider line in the middle? */
-/* If you want a vertical line separating English/Chinese, uncomment this: */
-/* .grid.document-mode .controls {
-    border-left: 1px solid #f1f5f9;
-} 
-*/
+/* --- BACKUP SYSTEM --- */
+
+/* The toggle button inside the cell */
+
+
+.cell-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%; /* Ensure it fills the grid column */
+}
+
+.backup-container {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px;
+    background: #f8fafc;
+    border-radius: 6px;
+    border-left: 2px solid #6366f1; /* Changed to match button hover color */
+}
+
+.backup-container.open {
+    display: flex;
+}
+
+/* Individual Card */
+.backup-card {
+    display: flex;
+    gap: 5px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 6px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.backup-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    resize: none; /* Auto-expand handled by JS ideally, but let's keep simple */
+    font-family: inherit;
+    background: transparent;
+}
+
+.backup-btn-del {
+    color: #cbd5e1;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 4px;
+}
+.backup-btn-del:hover { color: #ef4444; }
+
+.btn-add-backup {
+    font-size: 0.75rem;
+    color: #64748b;
+    background: none;
+    border: 1px dashed #cbd5e1;
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+}
+.btn-add-backup:hover {
+    border-color: #94a3b8;
+    color: #334155;
+}
+
+/* style.css */
+
+.backup-count {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    
+    /* Small & Circular-ish look */
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 10px;
+    
+    /* Colors (Indigo) */
+    background-color: #e0e7ff;
+    color: #6366f1;
+    border: 1px solid #c7d2fe;
+    
+    /* Font */
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 16px;
+    text-align: center;
+    
+    /* Interaction */
+    cursor: pointer;
+    z-index: 5; /* Sit on top of text */
+    user-select: none;
+    transition: all 0.2s;
+}
+
+.backup-count:hover {
+    background-color: #6366f1;
+    color: white;
+    border-color: #6366f1;
+    transform: scale(1.1);
+}

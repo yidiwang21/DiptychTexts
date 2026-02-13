@@ -102,6 +102,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    window.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            FileSystem.saveAppState();
+        }
+    });
+
 });
 
 // --- CONTROLLER FUNCTIONS (Orchestrators) ---
@@ -209,6 +215,7 @@ window.updatePairName = (id, val) => {
 
 // Grid Controls
 window.modifyGrid = EditorUI.modifyGrid;
+window.toggleBackupUI = EditorUI.toggleBackupUI;
 window.triggerSave = handleSave; // For Ctrl+S shortcut
 
 window.updateProjectName = (newName) => {

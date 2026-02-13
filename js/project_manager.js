@@ -1,5 +1,5 @@
 import { project } from './state.js';
-import { loadAppState, getDirectoryHandle, saveDirectoryHandle } from './file_system.js';
+import { loadAppState, getDirectoryHandle, saveDirectoryHandle, saveAppState } from './file_system.js';
 
 // --- restore the session and try to reconnect the files
 export async function restoreSession() {
@@ -46,6 +46,8 @@ export function createNewPair() {
         name: `Chapter ${project.pairs.length + 1}`,
         leftData: [],
         rightData: [],
+        leftBackups: [],
+        rightBackups: [],
         leftHandle: null,
         rightHandle: null,
         leftDirty: false,  
@@ -53,9 +55,10 @@ export function createNewPair() {
         leftLastModified: 0,
         rightLastModified: 0, 
         leftExternalChange: false,
-        rightExternalChange: false 
+        rightExternalChange: false
     };
     project.pairs.push(newPair);
+    saveAppState();
     return id; // Return ID so Main can switch to it
 }
 
@@ -64,6 +67,7 @@ export function deletePair(id) {
     if(project.activePairId === id) {
         project.activePairId = null;
     }
+    saveAppState();
 }
 
 export function saveProject() {
@@ -75,7 +79,9 @@ export function saveProject() {
             leftName: p.leftName || null,
             rightName: p.rightName || null,
             leftData: p.leftData,
-            rightData: p.rightData
+            rightData: p.rightData,
+            leftBackups: p.leftBackups || [], 
+            rightBackups: p.rightBackups || []
         }))
     };
 
@@ -103,6 +109,8 @@ export async function loadProject(file) {
                     rightHandle: null,
                     leftData: p.leftData || [],
                     rightData: p.rightData || [],
+                    leftBackups: p.leftBackups || [],
+                    rightBackups: p.rightBackups || [],
                     leftDirty: false,
                     rightDirty: false,
                     leftLastModified: 0,
@@ -132,6 +140,7 @@ export async function loadProject(file) {
                    return;
                 }
 
+                await saveAppState();
                 // If we have a handle, scan it
                 linkedCount = await scanAndLink(dirHandle);
                 resolve({ success: true, linkedCount: linkedCount });

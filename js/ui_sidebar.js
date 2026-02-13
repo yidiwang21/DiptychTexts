@@ -1,4 +1,5 @@
 import { project } from './state.js';
+import { saveAppState } from './file_system.js';
 
 export function renderSidebar() {
     const list = document.getElementById('pairList');
@@ -44,7 +45,10 @@ export function renderSidebar() {
 
 export function updatePairName(id, newName) {
     const pair = project.pairs.find(p => p.id === id);
-    if(pair) pair.name = newName;
+    if(pair) {
+        pair.name = newName;
+        saveAppState();
+    }
 }
 
 // This function needs to be exported so Main can call it after rendering
