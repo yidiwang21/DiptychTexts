@@ -9,7 +9,7 @@ export async function restoreSession() {
     // 1. Restore Data
     project.name = savedState.name || "Untitled Project";
     project.activePairId = savedState.activePairId;
-    project.pairs = savedState.pairs.map(p => ({
+    project.pairs = sanitizeProjectData(savedState.pairs).map(p => ({
         ...p,
         leftHandle: null,  // Handles are lost on reload
         rightHandle: null,
@@ -103,7 +103,7 @@ export async function loadProject(file) {
                 const data = JSON.parse(e.target.result);
                 
                 project.name = data.name || "Untitled Project";
-                project.pairs = data.pairs.map(p => ({
+                project.pairs = sanitizeProjectData(data.pairs).map(p => ({
                     ...p,
                     leftHandle: null,
                     rightHandle: null,
@@ -188,4 +188,17 @@ async function scanAndLink(dirHandle) {
         }
     }
     return matches;
+}
+
+function sanitizeProjectData(pairs) {
+    return pairs.map(p => ({
+        ...p,
+        // If backups don't exist, create empty arrays
+        leftBackups: p.leftBackups || [], 
+        rightBackups: p.rightBackups || [],
+        
+        // Ensure data arrays exist
+        leftData: p.leftData || [],
+        rightData: p.rightData || []
+    }));
 }

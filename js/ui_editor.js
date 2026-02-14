@@ -165,15 +165,16 @@ export function renderEditor() {
         const controls = document.createElement('div');
         controls.className = 'controls';
         controls.innerHTML = `
-            <div style="display:flex; flex-direction:row; gap:0px;">
-                <button class="ctrl-btn" onclick="modifyGrid('insert', 'left', ${i})" title="Push Left Down">▼</button>
+            <div style="display:flex; flex-direction:column; gap:1px">
+                <button class="ctrl-btn" onclick="modifyGrid('insert', 'left', ${i})" title="Insert Below">▼</button>
                 <button class="ctrl-btn btn-backup" onclick="toggleBackupUI('left', ${i})" title="Backups">+</button>
-                <button class="ctrl-btn btn-del" onclick="modifyGrid('delete', 'left', ${i})" title="Delete Left">×</button>
+                <button class="ctrl-btn btn-del" onclick="modifyGrid('delete', 'left', ${i})" title="Delete">×</button>
             </div>
-            <div style="width:1px; background:#e2e8f0; height:12px; margin-top:2px;"></div> <div style="display:flex; flex-direction:row; gap:0px;">
-                <button class="ctrl-btn" onclick="modifyGrid('insert', 'right', ${i})" title="Push Right Down">▼</button>
+            
+            <div style="display:flex; flex-direction:column; gap:1px">
+                <button class="ctrl-btn" onclick="modifyGrid('insert', 'right', ${i})" title="Insert Below">▼</button>
                 <button class="ctrl-btn btn-backup" onclick="toggleBackupUI('right', ${i})" title="Backups">+</button>
-                <button class="ctrl-btn btn-del" onclick="modifyGrid('delete', 'right', ${i})" title="Delete Right">×</button>
+                <button class="ctrl-btn btn-del" onclick="modifyGrid('delete', 'right', ${i})" title="Delete">×</button>
             </div>
         `;
 

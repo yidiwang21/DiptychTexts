@@ -45,10 +45,11 @@ body {
     background: #f1f5f9;
     display: flex;
     flex-direction: column;
-    gap: 10px; /* Adds nice space between Title and Button */
+    gap: 10px;
+    white-space: normal;
 }
 
-.sidebar-header h2 { font-size: 1.1rem; margin: 0 0 0.5rem 0; }
+/* .sidebar-header h2 { font-size: 1.1rem; margin: 0 0 0.5rem 0; } */
 
 .pair-list {
     flex: 1;
@@ -138,72 +139,35 @@ body {
     padding: 2rem; 
 }
 
-.grid { 
-    display: grid; 
-    grid-template-columns: 40px 1fr 80px 1fr; 
-    gap: 0; 
-    max-width: 90%; /* was 1400px; */
-    transition: max-width 0.2s ease;
-    margin: 0 auto; 
-    background: white; 
-    border: 1px solid var(--border); 
-    border-radius: 8px; 
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 2px; /* Tiny gap between Left/Right groups */
+    padding-top: 4px; /* Align with text top */
+    opacity: 0;
+    transition: opacity 0.1s;
+    height: 100%; /* Fill cell height */
+    align-items: flex-start; /* items start at top */
 }
 
-.line-num {
-    padding: 1rem 0.5rem;
-    border-bottom: 1px solid var(--border);
-    background: #f1f5f9;
-    color: #94a3b8;
-    text-align: right;
-    font-size: 0.8rem;
-    user-select: none; /* Prevent selecting line numbers when copying text */
-    font-family: monospace;
-}
-
-.cell { 
-    padding: 0.5rem; 
-    border-bottom: 1px solid var(--border); 
-    outline: none; 
-    line-height: 1.6; 
-    min-height: 1.5rem; 
-}
-
-.controls { 
-    display: flex; 
-    gap: 4px; 
-    justify-content: center; 
-    background: #f8fafc; opacity: 0.1; 
-    transition: opacity 0.2s; 
-    border-bottom: 1px solid var(--border); 
-    align-items: flex-start; /* Align to top of row */
-    padding-top: 6px;        /* Match text padding */
-    gap: 8px;                /* Space between Left set and Right set */
-}
-
-.controls:hover, .grid > div:hover + .controls { 
-    opacity: 1; 
-}
+.controls:hover { opacity: 1; }
 
 .ctrl-btn { 
-    /* border: none; 
-    background: none; 
-    color: #94a3b8; 
-    cursor: pointer; 
-    padding: 4px; 
-    width: 24px; 
-    height: 24px;
-    line-height: 1;
-    border-radius: 4px; */
     border: none;
-    background: none;
-    color: #cbd5e1; /* Lighter gray by default */
+    background: transparent;
+    color: #cbd5e1;
     cursor: pointer;
-    font-size: 10px;      /* Smaller icon */
-    padding: 4px 2px;     /* Minimal padding */
-    width: auto;          /* Remove fixed width */
-    height: auto;         /* Remove fixed height */
-    line-height: 1;
+    
+    /* MICRO SIZE */
+    font-size: 9px;       /* Very small icon */
+    height: 13px;         /* Fixed tiny height */
+    width: 14px;          /* Fixed tiny width */
+    padding: 0;
+    line-height: 13px;    /* Vertically center */
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .ctrl-btn:hover { 
@@ -216,6 +180,8 @@ body {
     color: #ef4444; 
     background: #fee2e2; 
 }
+
+.btn-backup:hover { color: #6366f1; background: #e0e7ff; }
 
 .btn-primary { 
     background: var(--primary); 
@@ -262,94 +228,47 @@ body {
     100% { opacity: 1; }
 }
 
-
-/* --- DOCUMENT MODE (Compact & Continuous) --- */
-
 /* 1. The Container */
-.grid.document-mode {
+.grid {
+    display: grid;
+    /* [LineNum] [Left Text] [Controls] [Right Text] */
+    grid-template-columns: 25px 1fr 40px 1fr;
+    gap: 0;
+    
     background-color: white; 
     border: 1px solid #e2e8f0; 
     border-radius: 4px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     
-    /* Reduced outer padding */
-    padding: 20px; 
-    gap: 0;
-    
-    /* CRITICAL: Override column widths for maximum compactness */
-    /* [LineNum: 25px] [Text: Auto] [Controls: 30px] [Text: Auto] */
-    /* grid-template-columns: 25px 1fr 30px 1fr;  */
-    grid-template-columns: 25px 1fr 65px 1fr;
+    margin: 0 auto; 
+    padding: 40px; /* Document padding */
+    max-width: 95%; /* Default, overridden by slider */
+    transition: max-width 0.2s ease;
 }
 
-/* 2. The Text Cells */
-.grid.document-mode .cell {
-    background-color: transparent;
+/* Text Cells */
+.cell-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; }
+
+.cell {
+    background: transparent;
     border: none;
-    border-radius: 0;
-    box-shadow: none;
-    margin: 0;
-    
-    /* Compact Padding: 4px top/bottom, 8px left/right */
-    padding: 4px 8px; 
-    
-    /* Typography */
+    padding: 4px 8px;
     font-size: 1rem;
-    line-height: 1.5; /* Tighter line height */
+    line-height: 1.6;
     color: #1e293b;
     font-family: 'Georgia', 'Cambria', serif; 
-}
-
-/* 3. The Line Numbers */
-.grid.document-mode .line-num {
-    background: transparent;
-    border: none;
-    color: #cbd5e1;
-    font-size: 0.65rem;
-    text-align: right;
-    
-    /* Align number with the first line of text */
-    padding: 8px 4px 0 0; 
-}
-
-/* 4. The Controls (Middle Gutter) */
-.grid.document-mode .controls {
-    background: transparent;
-    border: none;
-    opacity: 0;
-    transition: opacity 0.1s;
-    
-    /* Compact controls */
-    padding: 0;
-    gap: 0;
-    align-items: center;
-}
-
-.grid.document-mode .controls:hover {
-    opacity: 1;
-}
-
-/* 5. Focus State */
-.grid.document-mode .cell:focus {
-    background-color: #f8fafc;
     outline: none;
-    position: relative; 
-    z-index: 10;
-    /* Blue marker on the left */
-    box-shadow: inset 3px 0 0 #3b82f6; 
+    min-height: 1.5rem;
 }
+.cell:focus {
+    background-color: #f8fafc;
+    box-shadow: inset 3px 0 0 #3b82f6; /* Blue marker */
+}
+.cell.empty-row::before { content: "\200b"; } /* Force height */
 
 /* --- BACKUP SYSTEM --- */
 
 /* The toggle button inside the cell */
-
-
-.cell-wrapper {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    width: 100%; /* Ensure it fills the grid column */
-}
 
 .backup-container {
     display: none;
@@ -445,4 +364,14 @@ body {
     color: white;
     border-color: #6366f1;
     transform: scale(1.1);
+}
+
+#btnToggleSidebar {
+    border: none !important; /* Remove border */
+    background: transparent !important; /* Transparent background */
+    font-size: 1.2rem !important;
+    padding: 4px 8px !important;
+}
+#btnToggleSidebar:hover {
+    background: #f1f5f9 !important;
 }
