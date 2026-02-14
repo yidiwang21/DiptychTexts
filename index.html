@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Side-by-Side Alignment Project</title>
+    <title>DiptychTexts</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
         <div style="padding: 10px; background: #e2e8f0; border-bottom: 1px solid #cbd5e1; display:flex; gap:5px;">
             <button onclick="saveProject()" style="flex:1; font-size:0.8rem;">Save Project</button>
             <button onclick="document.getElementById('projectLoader').click()" style="flex:1; font-size:0.8rem;">Load Project</button>
-            <button onclick="closeProject()" style="flex:1; font-size:0.8rem;" title="Close/New">Close/New</button>
+            <button onclick="closeProject()" style="flex:1; font-size:0.8rem;" title="Close">Close</button>
     
             <input type="file" id="projectLoader" style="display:none" accept=".json" onchange="loadProject(this)">
         </div>
