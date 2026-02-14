@@ -28,26 +28,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }, 2000);
 
-    // View Toggle
-    // const btnToggleView = document.getElementById('btnToggleView');
-    // if (btnToggleView) {
-    //     btnToggleView.addEventListener('click', () => {
-    //         const grid = document.getElementById('grid');
-    //         grid.classList.toggle('document-mode');
-            
-    //         // Optional: Save preference
-    //         const isDocMode = grid.classList.contains('document-mode');
-    //         localStorage.setItem('viewMode', isDocMode ? 'document' : 'grid');
-    //     });
-
-    //     // Load saved preference
-    //     if (localStorage.getItem('viewMode') === 'document') {
-    //         document.getElementById('grid').classList.add('document-mode');
-    //     }
-    // } else {
-    //     console.error("View Toggle Button not found in HTML!");
-    // }
-
     // --- WIDTH SLIDER LOGIC ---
     const slider = document.getElementById('widthSlider');
     const grid = document.getElementById('grid');
