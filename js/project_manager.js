@@ -72,12 +72,53 @@ export async function restoreSession() {
 }
 
 /**
- * Re-request file permissions for all stored handles.
+ * Re-request file permissions for all stored handles (all chapters).
  * Must be called from a user-gesture handler (button click).
  * Returns the number of columns successfully relinked.
  */
 export async function relinkAllFiles() {
     return _tryRelinkHandles({ requireGesture: true });
+}
+
+/**
+ * Reconnect and reload files for a single chapter.
+ * Tries to re-request browser permission for any columns that have a stored
+ * IndexedDB handle but no live in-memory handle (e.g. after a page reload).
+ * Must be called from a user-gesture handler so requestPermission() can show
+ * the browser prompt.
+ * Returns the number of columns successfully linked.
+ */
+export async function relinkPair(pairId) {
+    const pair = project.pairs.find(p => p.id === pairId);
+    if (!pair) return 0;
+
+    let linked = 0;
+    for (let c = 0; c < pair.columns.length; c++) {
+        const col = pair.columns[c];
+        if (col.handle) { linked++; continue; }   // Already live
+
+        try {
+            const handle = await getFileHandle(pair.id, c);
+            if (!handle) continue;
+
+            const opts    = { mode: 'readwrite' };
+            let granted   = (await handle.queryPermission(opts)) === 'granted';
+            if (!granted) granted = (await handle.requestPermission(opts)) === 'granted';
+            if (!granted) continue;
+
+            col.handle         = handle;
+            col.name           = handle.name;
+            const file         = await handle.getFile();
+            col.data           = parseFileContent(await file.text());
+            col.lastModified   = file.lastModified;
+            col.dirty          = false;
+            col.externalChange = false;
+            linked++;
+        } catch (e) {
+            console.warn(`relinkPair failed [${pairId}][${c}]:`, e.message);
+        }
+    }
+    return linked;
 }
 
 /**

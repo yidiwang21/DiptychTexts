@@ -5,6 +5,7 @@ import * as FileSystem      from './file_system.js';
 import * as ProjectManager  from './project_manager.js';
 import * as SidebarUI       from './ui_sidebar.js';
 import * as EditorUI        from './ui_editor.js';
+import * as FindReplace     from './ui_find_replace.js';
 // mergeCellDown, splitCell, pushUndo, undoLastOp, toggleColHidden imported via EditorUI.*
 
 
@@ -17,7 +18,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ── Static button wiring ────────────────────────────────────────────
     document.getElementById('btnAddPair').addEventListener('click', handleNewPair);
     document.getElementById('btnRefresh')?.addEventListener('click', handleRefresh);
-    document.getElementById('btnRelink')?.addEventListener('click', handleRelink);
     document.getElementById('btnAddCol')?.addEventListener('click', handleAddColumn);
     document.getElementById('btnRemoveCol')?.addEventListener('click', handleRemoveColumn);
 
@@ -78,14 +78,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (document.visibilityState === 'hidden') FileSystem.saveAppState();
     });
 
-    // ── Undo: Cmd+Z / Ctrl+Z (skip when editing text in a cell) ─────────
+    // ── Global keyboard shortcuts ────────────────────────────────────────
     document.addEventListener('keydown', (e) => {
-        if (!((e.metaKey || e.ctrlKey) && e.key === 'z')) return;
-        const active = document.activeElement;
-        // Let the browser handle native text undo inside contenteditable cells
-        if (active && active.contentEditable === 'true') return;
-        e.preventDefault();
-        EditorUI.undoLastOp();
+        const mod = e.metaKey || e.ctrlKey;
+
+        // Cmd+Z / Ctrl+Z — structural undo (skip when cursor is in a text cell)
+        if (mod && e.key === 'z') {
+            const active = document.activeElement;
+            if (active && active.contentEditable === 'true') return;
+            e.preventDefault();
+            EditorUI.undoLastOp();
+            return;
+        }
+
+        // Cmd+F / Ctrl+F — open Find & Replace (suppress browser's native find bar)
+        if (mod && e.key === 'f') {
+            e.preventDefault();
+            FindReplace.openFindReplace();
+            return;
+        }
+
+        // Cmd+H / Ctrl+H — open Find & Replace
+        if (mod && e.key === 'h') {
+            e.preventDefault();
+            FindReplace.openFindReplace();
+            return;
+        }
+
+        // Escape — close Find & Replace panel if it's open (and focus is not in it)
+        if (e.key === 'Escape') {
+            const panel = document.getElementById('findReplacePanel');
+            if (panel && panel.style.display !== 'none' && !panel.contains(document.activeElement)) {
+                FindReplace.closeFindReplace();
+            }
+        }
     });
 
     // ── Sync state before printing so the printed content is up to date ──
@@ -121,25 +147,29 @@ function handleNewPair() {
 }
 
 async function handleRefresh() {
-    if (project.activePairId) EditorUI.syncEditorToState(project.activePairId);
+    if (!project.activePairId) return;
+
+    const btn = document.getElementById('btnRefresh');
+    if (btn) { btn.disabled = true; btn.innerText = '↻ …'; }
+
+    // Step 1: Reconnect any columns that have a stored IndexedDB handle but
+    // lost their live in-memory reference (e.g. after a page reload where the
+    // browser needs to re-prompt for permission). This is what the old "Relink"
+    // button used to do — now it's folded in automatically here.
+    await ProjectManager.relinkPair(project.activePairId);
+
+    // Step 2: Sync editor DOM → state so we don't lose unsaved typing.
+    EditorUI.syncEditorToState(project.activePairId);
+
+    // Step 3: Re-read the latest file contents from disk for all linked columns.
     const result = await FileSystem.refreshActivePair();
+
     if (result.success) {
         EditorUI.renderEditor();
         EditorUI.updateStats();
     }
-}
 
-async function handleRelink() {
-    const btn = document.getElementById('btnRelink');
-    if (btn) { btn.disabled = true; btn.innerText = '🔗 Linking…'; }
-
-    const count = await ProjectManager.relinkAllFiles();
-    refreshAllUI();
-
-    if (btn) { btn.disabled = false; btn.innerText = '🔗 Relink'; }
-    if (count === 0) {
-        alert("No stored file handles found.\nTry dropping or clicking a file zone in the sidebar.");
-    }
+    if (btn) { btn.disabled = false; btn.innerText = '↻ Refresh'; }
 }
 
 // ── Column +/− handlers ──────────────────────────────────────────────────────
@@ -248,6 +278,7 @@ window.setActivePair = (id) => {
     if (project.activePairId) EditorUI.syncEditorToState(project.activePairId);
     project.activePairId = id;
     refreshAllUI();
+    FindReplace.refreshIfOpen();   // Keep column checkboxes in sync when chapter changes
 };
 
 window.updatePairName = (id, val) => SidebarUI.updatePairName(id, val);
