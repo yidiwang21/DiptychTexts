@@ -1,138 +1,127 @@
-import { project, APP_VERSION } from './state.js';
-import * as FileSystem from './file_system.js';
-import * as ProjectManager from './project_manager.js';
-import * as SidebarUI from './ui_sidebar.js';
-import * as EditorUI from './ui_editor.js';
+// js/main.js
 
-// --- INITIALIZATION ---
+import { project, APP_VERSION } from './state.js';
+import * as FileSystem      from './file_system.js';
+import * as ProjectManager  from './project_manager.js';
+import * as SidebarUI       from './ui_sidebar.js';
+import * as EditorUI        from './ui_editor.js';
+// mergeCellDown, splitCell, pushUndo, undoLastOp, toggleColHidden imported via EditorUI.*
+
+
+// ─────────────────────────────────────────────
+//  INITIALIZATION
+// ─────────────────────────────────────────────
+
 document.addEventListener('DOMContentLoaded', async () => {
-    
-    // Hook up Static Buttons
+
+    // ── Static button wiring ────────────────────────────────────────────
     document.getElementById('btnAddPair').addEventListener('click', handleNewPair);
-    document.getElementById('btnSaveLeft').addEventListener('click', () => handleSave('left'));
-    document.getElementById('btnSaveRight').addEventListener('click', () => handleSave('right'));
-    
-    const refreshBtn = document.getElementById('btnRefresh');
-    if(refreshBtn) refreshBtn.addEventListener('click', handleRefresh);
+    document.getElementById('btnRefresh')?.addEventListener('click', handleRefresh);
+    document.getElementById('btnRelink')?.addEventListener('click', handleRelink);
+    document.getElementById('btnAddCol')?.addEventListener('click', handleAddColumn);
+    document.getElementById('btnRemoveCol')?.addEventListener('click', handleRemoveColumn);
 
     document.getElementById('appVersion').innerText = APP_VERSION;
 
-    // Initial Render
+    // ── Initial render ──────────────────────────────────────────────────
     refreshAllUI();
 
-    // Start Polling for Changes
+    // ── Poll for external file changes every 2 s ────────────────────────
     setInterval(async () => {
         const changed = await FileSystem.checkForExternalChanges();
-        if (changed) {
-            EditorUI.updateStats(); // Only update dots, don't re-render whole grid
-        }
+        if (changed) EditorUI.updateStats();
     }, 2000);
 
-    // --- WIDTH SLIDER LOGIC ---
+    // ── Width slider ────────────────────────────────────────────────────
     const slider = document.getElementById('widthSlider');
-    const grid = document.getElementById('grid');
+    const grid   = document.getElementById('grid');
 
     if (slider && grid) {
-        // 1. Function to apply width
         const setWidth = (val) => {
             grid.style.maxWidth = val + '%';
-            slider.value = val; // Sync slider UI
+            slider.value = val;
         };
-
-        // 2. Load saved preference (default to 95% if not set)
         const savedWidth = localStorage.getItem('editorWidth') || 95;
         setWidth(savedWidth);
-
-        // 3. Listen for changes
         slider.addEventListener('input', (e) => {
-            const val = e.target.value;
-            setWidth(val);
-            localStorage.setItem('editorWidth', val);
+            setWidth(e.target.value);
+            localStorage.setItem('editorWidth', e.target.value);
         });
     }
 
-    // SESSION RESTORE AND AUTO-SAVE
+    // ── Session restore ─────────────────────────────────────────────────
     const restored = await ProjectManager.restoreSession();
     if (restored) {
         refreshAllUI();
         console.log("Session restored!");
     }
 
-    // 2. START AUTO-SAVE LOOP (Every 5 seconds)
-    setInterval(() => {
-        FileSystem.saveAppState();
-    }, 5000);
+    // ── Auto-save every 5 s ─────────────────────────────────────────────
+    setInterval(() => FileSystem.saveAppState(), 5000);
 
-    // --- SIDEBAR TOGGLE LOGIC ---
-    const sidebar = document.querySelector('.sidebar');
+    // ── Sidebar collapse toggle ──────────────────────────────────────────
+    const sidebar          = document.querySelector('.sidebar');
     const btnToggleSidebar = document.getElementById('btnToggleSidebar');
 
     if (sidebar && btnToggleSidebar) {
-        // 1. Click Handler
         btnToggleSidebar.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
-            // Save state
-            const isClosed = sidebar.classList.contains('collapsed');
-            localStorage.setItem('sidebarCollapsed', isClosed);
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
         });
-
-        // 2. Restore State on Load
         if (localStorage.getItem('sidebarCollapsed') === 'true') {
             sidebar.classList.add('collapsed');
         }
     }
 
+    // ── Save state on tab hide ───────────────────────────────────────────
     window.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-            FileSystem.saveAppState();
-        }
+        if (document.visibilityState === 'hidden') FileSystem.saveAppState();
     });
 
+    // ── Undo: Cmd+Z / Ctrl+Z (skip when editing text in a cell) ─────────
+    document.addEventListener('keydown', (e) => {
+        if (!((e.metaKey || e.ctrlKey) && e.key === 'z')) return;
+        const active = document.activeElement;
+        // Let the browser handle native text undo inside contenteditable cells
+        if (active && active.contentEditable === 'true') return;
+        e.preventDefault();
+        EditorUI.undoLastOp();
+    });
+
+    // ── Sync state before printing so the printed content is up to date ──
+    window.addEventListener('beforeprint', () => {
+        if (project.activePairId) EditorUI.syncEditorToState(project.activePairId);
+    });
 });
 
-// --- CONTROLLER FUNCTIONS (Orchestrators) ---
+
+// ─────────────────────────────────────────────
+//  CONTROLLER / ORCHESTRATOR FUNCTIONS
+// ─────────────────────────────────────────────
 
 function refreshAllUI() {
     SidebarUI.renderSidebar();
-    SidebarUI.attachAllDropHandlers((pairId) => {
-        // Callback when a file is dropped
-        if (project.activePairId === pairId) {
-            EditorUI.renderEditor();
-            EditorUI.updateToolbar();
-            EditorUI.updateStats();
-        }
-        SidebarUI.renderSidebar(); // Update border colors
-    });
-    
+    // Always re-attach handlers after every render — the callback must call
+    // refreshAllUI() so that the newly-created DOM nodes for other columns
+    // also get their listeners re-wired (fixes: click on col 2/3 does nothing
+    // after col 1 was linked, because renderSidebar replaces the DOM nodes).
+    SidebarUI.attachAllDropHandlers(() => refreshAllUI());
+
     EditorUI.renderEditor();
     EditorUI.updateToolbar();
     EditorUI.updateStats();
 }
 
-// Handler for "New Chapter"
+// ── Chapter (pair) handlers ──────────────────────────────────────────────────
+
 function handleNewPair() {
     const newId = ProjectManager.createNewPair();
     project.activePairId = newId;
     refreshAllUI();
 }
 
-// Handler for "Save"
-async function handleSave(side) {
-    const result = await FileSystem.saveActiveFile(side);
-    if (result.success) {
-        SidebarUI.renderSidebar(); // In case name changed (Save As)
-        EditorUI.updateToolbar();
-        EditorUI.updateStats(); // Turn dot green
-    } else if (result.error) {
-        alert("Save failed: " + result.error);
-    }
-}
-
-// Handler for "Refresh"
 async function handleRefresh() {
-    // Before refreshing, sync current edits to state so we don't lose them if we cancel
-    if(project.activePairId) EditorUI.syncEditorToState(project.activePairId);
-
+    if (project.activePairId) EditorUI.syncEditorToState(project.activePairId);
     const result = await FileSystem.refreshActivePair();
     if (result.success) {
         EditorUI.renderEditor();
@@ -140,64 +129,136 @@ async function handleRefresh() {
     }
 }
 
-// --- EXPOSE TO WINDOW (For HTML onclicks) ---
+async function handleRelink() {
+    const btn = document.getElementById('btnRelink');
+    if (btn) { btn.disabled = true; btn.innerText = '🔗 Linking…'; }
 
-window.saveProject = ProjectManager.saveProject;
+    const count = await ProjectManager.relinkAllFiles();
+    refreshAllUI();
+
+    if (btn) { btn.disabled = false; btn.innerText = '🔗 Relink'; }
+    if (count === 0) {
+        alert("No stored file handles found.\nTry dropping or clicking a file zone in the sidebar.");
+    }
+}
+
+// ── Column +/− handlers ──────────────────────────────────────────────────────
+
+function handleAddColumn() {
+    if (!project.activePairId) return;
+    EditorUI.syncEditorToState(project.activePairId);
+    EditorUI.pushUndo();
+    const added = ProjectManager.addColumn(project.activePairId);
+    if (added) refreshAllUI();
+}
+
+function handleRemoveColumn() {
+    if (!project.activePairId) return;
+    const pair    = project.pairs.find(p => p.id === project.activePairId);
+    if (!pair) return;
+
+    // Warn if last column has content or a linked file
+    const lastCol = pair.columns[pair.columns.length - 1];
+    const hasData = lastCol.data.some(d => d.trim()) || !!lastCol.name;
+    if (hasData && !confirm("The last column has content or a linked file. Remove it anyway?")) return;
+
+    EditorUI.syncEditorToState(project.activePairId);
+    EditorUI.pushUndo();
+    const removed = ProjectManager.removeColumn(project.activePairId);
+    if (removed) refreshAllUI();
+}
+
+// ── Unlink handler ───────────────────────────────────────────────────────────
+
+async function handleUnlinkFile(pairId, colIdx) {
+    const pair = project.pairs.find(p => p.id === pairId);
+    if (!pair) return;
+
+    const col = pair.columns[colIdx];
+    if (!col) return;
+
+    // Clear all column state (keep the column itself, just wipe its content)
+    col.handle         = null;
+    col.name           = null;
+    col.data           = [''];
+    col.spans          = [];
+    col.backups        = [];
+    col.dirty          = false;
+    col.lastModified   = 0;
+    col.externalChange = false;
+
+    // Remove the stored IndexedDB handle so it doesn't get re-linked on reload
+    await FileSystem.removeFileHandle(pairId, colIdx);
+
+    refreshAllUI();
+}
+
+// ── Save handler ─────────────────────────────────────────────────────────────
+
+async function handleSave(colIdx) {
+    const result = await FileSystem.saveActiveFile(colIdx);
+    if (result.success) {
+        SidebarUI.renderSidebar();
+        EditorUI.updateToolbar();
+        EditorUI.updateStats();
+    } else if (result.error) {
+        alert("Save failed: " + result.error);
+    }
+}
+
+
+// ─────────────────────────────────────────────
+//  WINDOW GLOBALS  (called from HTML / editor)
+// ─────────────────────────────────────────────
+
+window.saveProject  = ProjectManager.saveProject;
+window.closeProject = () => {
+    if (!confirm("Close project? Unsaved changes will be lost.")) return;
+    project.pairs        = [];
+    project.activePairId = null;
+    project.name         = "Untitled Project";
+    refreshAllUI();
+};
 
 window.loadProject = async (input) => {
     const result = await ProjectManager.loadProject(input.files[0]);
     if (result.success) {
-        // Handle Auto-Relink UI flow
         if (result.needsFolder) {
-            if (confirm("Project loaded! Click OK to select source folder for auto-linking.")) {
-                const linkResult = await ProjectManager.relinkFolder();
-                if (linkResult.success) alert(`Linked ${linkResult.count} files.`);
+            if (confirm("Project loaded! Click OK to select the source folder for auto-linking.")) {
+                const link = await ProjectManager.relinkFolder();
+                if (link.success) alert(`Linked ${link.count} files.`);
             }
         } else if (result.linkedCount !== undefined) {
             alert(`Project loaded & ${result.linkedCount} files linked automatically.`);
         }
-
-        // Set active pair to first one
         if (project.pairs.length > 0) project.activePairId = project.pairs[0].id;
         refreshAllUI();
     }
-    input.value = ''; // Reset input
-};
-
-window.closeProject = () => {
-    if(confirm("Close project? Unsaved changes lost.")) {
-        project.pairs = [];
-        project.activePairId = null;
-        project.name = "Untitled Project";
-        refreshAllUI();
-    }
+    input.value = '';
 };
 
 window.deletePair = (id) => {
-    if(confirm("Delete this chapter?")) {
+    if (confirm("Delete this chapter?")) {
         ProjectManager.deletePair(id);
         refreshAllUI();
     }
 };
 
 window.setActivePair = (id) => {
-    // Save current state before switching
     if (project.activePairId) EditorUI.syncEditorToState(project.activePairId);
-    
     project.activePairId = id;
     refreshAllUI();
 };
 
-window.updatePairName = (id, val) => {
-    SidebarUI.updatePairName(id, val);
-    // No need to full re-render
-};
+window.updatePairName = (id, val) => SidebarUI.updatePairName(id, val);
 
-// Grid Controls
-window.modifyGrid = EditorUI.modifyGrid;
+window.updateProjectName = (newName) => { project.name = newName; };
+
+// Grid control globals (called inline from rendered HTML)
+window.modifyGrid     = EditorUI.modifyGrid;
 window.toggleBackupUI = EditorUI.toggleBackupUI;
-window.triggerSave = handleSave; // For Ctrl+S shortcut
-
-window.updateProjectName = (newName) => {
-    project.name = newName;
-};
+window.triggerSave    = handleSave;        // Ctrl+S in cells passes colIdx
+window.mergeCellDown  = EditorUI.mergeCellDown;
+window.splitCell      = EditorUI.splitCell;
+window.toggleColHidden = EditorUI.toggleColHidden;
+window.unlinkFile      = handleUnlinkFile;

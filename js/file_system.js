@@ -1,24 +1,76 @@
+// js/file_system.js
+
 import { project, APP_CONSTANTS } from './state.js';
 
-// --- DATABASE HELPERS ---
+
+// ─────────────────────────────────────────────
+//  TEXT PARSING  (shared by drop, click, refresh)
+// ─────────────────────────────────────────────
+
+/**
+ * Parse raw file text into an array of paragraph strings.
+ * Paragraphs are blocks of text separated by one or more blank lines.
+ * Each cell in the editor holds one paragraph.
+ *
+ * Example input:        → output cells:
+ *   "Para one.\n        ["Para one.", "Para two.\nLine 2.", "Para three."]
+ *    \n
+ *    Para two.\nLine 2.
+ *    \n
+ *    Para three."
+ */
+export function parseFileContent(rawText) {
+    const text = (rawText || '').replace(/\r\n/g, '\n').trimEnd();
+    if (!text) return [''];
+
+    // Split on EXACTLY one blank line (\n\n).
+    // This preserves intentional empty cells (alignment rows saved as empty
+    // segments between double-blank-line pairs) while still separating normal
+    // paragraphs correctly.
+    //
+    //   "A\n\nB"       → ["A", "B"]       (normal paragraph split)
+    //   "A\n\n\n\nB"   → ["A", "", "B"]   (empty alignment cell preserved ✓)
+    //   "A\n\n\nB"     → ["A", "B"]       (odd trailing \n trimmed away)
+    //
+    // Leading / trailing empty entries (file-level whitespace) are dropped,
+    // but INTERNAL empty entries are kept — they are empty alignment cells.
+    const cells = text.split('\n\n').map(p => p.trim());
+
+    let lo = 0, hi = cells.length - 1;
+    while (lo <= hi && cells[lo]  === '') lo++;
+    while (hi >= lo && cells[hi] === '') hi--;
+
+    const result = cells.slice(lo, hi + 1);
+    return result.length > 0 ? result : [''];
+}
+
+/**
+ * Serialize editor cells back to file text.
+ * Paragraphs are joined with a blank line, matching parseFileContent's format.
+ */
+export function serializeFileContent(cells) {
+    return (cells || []).join('\n\n');
+}
+
+
+// ─────────────────────────────────────────────
+//  DATABASE HELPERS
+// ─────────────────────────────────────────────
+
 function getDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(APP_CONSTANTS.DB_NAME, APP_CONSTANTS.DB_VERSION);
         request.onupgradeneeded = (e) => {
             const db = e.target.result;
-            // e.target.result.createObjectStore('handles');
-            if (!db.objectStoreNames.contains('handles')) {
-                db.createObjectStore('handles');
-            }
-            // Create app_state store if missing (NEW)
-            if (!db.objectStoreNames.contains('app_state')) {
-                db.createObjectStore('app_state');
-            }
+            if (!db.objectStoreNames.contains('handles'))   db.createObjectStore('handles');
+            if (!db.objectStoreNames.contains('app_state')) db.createObjectStore('app_state');
         };
         request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
+        request.onerror   = () => reject(request.error);
     });
 }
+
+// ── Directory handle (for bulk folder relink) ─────────────────────────────────
 
 export async function saveDirectoryHandle(handle) {
     const db = await getDB();
@@ -29,88 +81,113 @@ export async function saveDirectoryHandle(handle) {
 
 export async function getDirectoryHandle() {
     const db = await getDB();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction('handles', 'readonly');
+    return new Promise((resolve) => {
+        const tx  = db.transaction('handles', 'readonly');
         const req = tx.objectStore('handles').get('project_root');
         req.onsuccess = () => resolve(req.result);
-        req.onerror = () => resolve(null);
+        req.onerror   = () => resolve(null);
     });
 }
 
-// --- FILE OPERATIONS ---
+// ── Per-column file handles ───────────────────────────────────────────────────
+// Key pattern: "file_{pairId}_{colIdx}"
 
-export async function saveActiveFile(side) {
+export async function saveFileHandle(pairId, colIdx, handle) {
+    try {
+        const db = await getDB();
+        const tx = db.transaction('handles', 'readwrite');
+        tx.objectStore('handles').put(handle, `file_${pairId}_${colIdx}`);
+    } catch (e) {
+        console.warn('saveFileHandle failed:', e.message);
+    }
+}
+
+export async function getFileHandle(pairId, colIdx) {
+    const db = await getDB();
+    return new Promise((resolve) => {
+        const tx  = db.transaction('handles', 'readonly');
+        const req = tx.objectStore('handles').get(`file_${pairId}_${colIdx}`);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror   = () => resolve(null);
+    });
+}
+
+export async function removeFileHandle(pairId, colIdx) {
+    try {
+        const db = await getDB();
+        const tx = db.transaction('handles', 'readwrite');
+        tx.objectStore('handles').delete(`file_${pairId}_${colIdx}`);
+    } catch (e) { /* ignore */ }
+}
+
+
+// ─────────────────────────────────────────────
+//  FILE OPERATIONS
+// ─────────────────────────────────────────────
+
+/**
+ * Save a column to disk (paragraph-joined).
+ * Opens a Save As picker if the column has no linked file yet.
+ * Persists the file handle in IndexedDB so it survives page reloads.
+ */
+export async function saveActiveFile(colIdx) {
     const pair = project.pairs.find(p => p.id === project.activePairId);
-    if(!pair) return { success: false, error: "No active chapter" };
+    if (!pair) return { success: false, error: "No active chapter" };
 
-    let handle = side === 'left' ? pair.leftHandle : pair.rightHandle;
-    const data = side === 'left' ? pair.leftData : pair.rightData;
+    const col = pair.columns[colIdx];
+    if (!col)  return { success: false, error: `Invalid column index: ${colIdx}` };
 
-    // 1. If no file linked, ask user to "Save As"
+    let handle = col.handle;
+
+    // No file linked → Save As
     if (!handle) {
         try {
             handle = await window.showSaveFilePicker({
-                suggestedName: side === 'left' ? 'chapter_cn.txt' : 'chapter_en.txt'
+                suggestedName: col.name || `column_${colIdx + 1}.txt`
             });
-            // Update State
-            if (side === 'left') { pair.leftHandle = handle; pair.leftName = handle.name; }
-            else { pair.rightHandle = handle; pair.rightName = handle.name; }
+            col.handle = handle;
+            col.name   = handle.name;
         } catch (err) {
             return { success: false, cancelled: true };
         }
     }
 
-    // 2. Write to disk
+    // Write paragraphs joined by blank line
     try {
         const writable = await handle.createWritable();
-        await writable.write(data.join('\n'));
+        await writable.write(serializeFileContent(col.data));
         await writable.close();
 
-        // 3. Update Timestamp & Flags
-        const file = await handle.getFile();
-        if (side === 'left') {
-            pair.leftLastModified = file.lastModified;
-            pair.leftDirty = false;
-            pair.leftExternalChange = false;
-        } else {
-            pair.rightLastModified = file.lastModified;
-            pair.rightDirty = false;
-            pair.rightExternalChange = false;
-        }
+        const file          = await handle.getFile();
+        col.lastModified    = file.lastModified;
+        col.dirty           = false;
+        col.externalChange  = false;
+
+        // Persist the handle so the file stays linked after reload
+        await saveFileHandle(pair.id, colIdx, handle);
 
         return { success: true };
-    } catch(e) {
+    } catch (e) {
         return { success: false, error: e.message };
     }
 }
 
+/** Reload all linked column files from disk (paragraph mode). */
 export async function refreshActivePair() {
     const pair = project.pairs.find(p => p.id === project.activePairId);
     if (!pair) return { success: false };
 
     try {
         let reloaded = false;
-        
-        // Reload Left
-        if (pair.leftHandle) {
-            const file = await pair.leftHandle.getFile();
-            pair.leftData = (await file.text()).trimEnd().split(/\r?\n/);
-            pair.leftLastModified = file.lastModified;
-            pair.leftDirty = false;
-            pair.leftExternalChange = false;
-            reloaded = true;
+        for (const col of pair.columns) {
+            if (!col.handle) continue;
+            const file          = await col.handle.getFile();
+            col.data            = parseFileContent(await file.text());
+            col.lastModified    = file.lastModified;
+            col.dirty           = false;
+            col.externalChange  = false;
+            reloaded            = true;
         }
-
-        // Reload Right
-        if (pair.rightHandle) {
-            const file = await pair.rightHandle.getFile();
-            pair.rightData = (await file.text()).trimEnd().split(/\r?\n/);
-            pair.rightLastModified = file.lastModified;
-            pair.rightDirty = false;
-            pair.rightExternalChange = false;
-            reloaded = true;
-        }
-
         return { success: reloaded };
     } catch (err) {
         console.error(err);
@@ -118,60 +195,53 @@ export async function refreshActivePair() {
     }
 }
 
+/** Poll for external disk changes on all columns of the active pair. */
 export async function checkForExternalChanges() {
     const pair = project.pairs.find(p => p.id === project.activePairId);
     if (!pair) return false;
 
     let changed = false;
-
-    // Check Left
-    if (pair.leftHandle) {
+    for (const col of pair.columns) {
+        if (!col.handle) continue;
         try {
-            const file = await pair.leftHandle.getFile();
-            if (file.lastModified > pair.leftLastModified) {
-                if (!pair.leftExternalChange) {
-                    pair.leftExternalChange = true;
-                    changed = true;
-                }
+            const file = await col.handle.getFile();
+            if (file.lastModified > col.lastModified && !col.externalChange) {
+                col.externalChange = true;
+                changed = true;
             }
-        } catch(e) { /* ignore permission errors during poll */ }
+        } catch (e) { /* ignore permission errors during poll */ }
     }
-
-    // Check Right
-    if (pair.rightHandle) {
-        try {
-            const file = await pair.rightHandle.getFile();
-            if (file.lastModified > pair.rightLastModified) {
-                if (!pair.rightExternalChange) {
-                    pair.rightExternalChange = true;
-                    changed = true;
-                }
-            }
-        } catch(e) { /* ignore */ }
-    }
-
     return changed;
 }
 
-// ---- APP STATE PERSISTENCE (for UI state, not file handles) ----
+
+// ─────────────────────────────────────────────
+//  APP STATE PERSISTENCE  (text cache + metadata)
+// ─────────────────────────────────────────────
+
+/**
+ * Save project state to IndexedDB.
+ * File handles are NOT stored here (they live in the 'handles' store).
+ * This state is a fallback for when handles aren't available.
+ */
 export async function saveAppState() {
     const db = await getDB();
     const tx = db.transaction('app_state', 'readwrite');
-    
-    // We strip out the file handles because they can't be saved in this JSON blob
-    // (We rely on the 'handles' store and auto-relink for that)
+
     const cleanState = {
-        name: project.name,
+        name:         project.name,
         activePairId: project.activePairId,
         pairs: project.pairs.map(p => ({
-            id: p.id,
+            id:   p.id,
             name: p.name,
-            leftName: p.leftName,
-            rightName: p.rightName,
-            leftData: p.leftData,
-            rightData: p.rightData,
-            leftLastModified: p.leftLastModified,
-            rightLastModified: p.rightLastModified
+            columns: p.columns.map(col => ({
+                name:         col.name,
+                data:         col.data,
+                backups:      col.backups || [],
+                spans:        col.spans   || [],
+                hidden:       col.hidden  || false,
+                lastModified: col.lastModified
+            }))
         }))
     };
 
@@ -182,9 +252,9 @@ export async function saveAppState() {
 export async function loadAppState() {
     const db = await getDB();
     return new Promise((resolve) => {
-        const tx = db.transaction('app_state', 'readonly');
+        const tx  = db.transaction('app_state', 'readonly');
         const req = tx.objectStore('app_state').get('current_session');
         req.onsuccess = () => resolve(req.result);
-        req.onerror = () => resolve(null);
+        req.onerror   = () => resolve(null);
     });
 }

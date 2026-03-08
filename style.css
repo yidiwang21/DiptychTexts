@@ -12,26 +12,32 @@ body {
     height: 100vh;
     background: var(--bg);
     color: #334155;
-    overflow: hidden; /* Prevent body scroll, let containers scroll */
+    overflow: hidden; /* Let inner containers scroll */
 }
 
-/* Layout Containers */
+/* ────────────────────────────────────────────
+   LAYOUT
+──────────────────────────────────────────── */
+
 .app-layout {
     display: flex;
     height: 100%;
     width: 100%;
 }
 
-/* SIDEBAR STYLES */
+/* ────────────────────────────────────────────
+   SIDEBAR
+──────────────────────────────────────────── */
+
 .sidebar {
     width: var(--sidebar-w);
     background: #fff;
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    transition: width 0.3s ease, padding 0.3s ease; /* Smooth slide */
-    overflow: hidden; /* Hide content when collapsed */
-    white-space: nowrap; /* Prevent text wrapping while closing */
+    transition: width 0.3s ease, padding 0.3s ease;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .sidebar.collapsed {
@@ -49,8 +55,6 @@ body {
     white-space: normal;
 }
 
-/* .sidebar-header h2 { font-size: 1.1rem; margin: 0 0 0.5rem 0; } */
-
 .pair-list {
     flex: 1;
     overflow-y: auto;
@@ -58,7 +62,8 @@ body {
     background: #f8fafc;
 }
 
-/* Sidebar Cards (The Pair Items) */
+/* ── Sidebar Cards ────────────────────────── */
+
 .pair-card {
     background: white;
     border: 1px solid var(--border);
@@ -69,185 +74,184 @@ body {
     transition: all 0.2s;
 }
 
-.pair-card:hover { 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
-    border-color: #cbd5e1; 
+.pair-card:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border-color: #cbd5e1;
 }
 
-.pair-card.active { 
-    border-color: var(--primary); 
-    box-shadow: 0 0 0 2px rgba(37,99,235,0.1); 
+.pair-card.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
 }
 
-.pair-header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    margin-bottom: 8px; 
+.pair-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
 }
 
-.pair-title { 
-    font-weight: 600; 
-    font-size: 0.9rem; 
-    border: none; 
-    background: transparent; 
-    width: 100%; 
+.pair-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: none;
+    background: transparent;
+    width: 100%;
 }
 
-.pair-title:focus { 
-    background: #f1f5f9; 
-    outline: none; 
+.pair-title:focus {
+    background: #f1f5f9;
+    outline: none;
 }
 
-.drop-zones { display: flex; gap: 5px; }
+/* ── Drop Zones ───────────────────────────── */
+
+.drop-zones {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap; /* Allow wrapping for 3-4 columns */
+}
+
 .drop-zone {
     flex: 1;
+    min-width: 50px;
     border: 1px dashed #cbd5e1;
     border-radius: 4px;
-    padding: 15px 5px;
+    padding: 10px 4px;
     text-align: center;
     font-size: 0.7rem;
     color: #94a3b8;
     background: #fafafa;
-    transition: background 0.2s;
-}
-.drop-zone.loaded { 
-    background: #dcfce7; 
-    border-color: #86efac; 
-    color: #166534; 
-    border-style: solid; 
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    overflow: hidden;
+    position: relative;  /* needed for the unlink button */
 }
 
-.drop-zone:hover { 
-    background: #e2e8f0; 
+/* Small × unlink button, visible only on hover of the loaded drop zone */
+.drop-zone-unlink-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 15px;
+    height: 15px;
+    padding: 0;
+    font-size: 10px;
+    line-height: 1;
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    border-radius: 3px;
+    color: #dc2626;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.drop-zone:hover .drop-zone-unlink-btn {
+    opacity: 1;
+}
+.drop-zone-unlink-btn:hover {
+    background: #fecaca;
+    border-color: #f87171;
 }
 
-/* MAIN EDITOR AREA */
+.drop-zone-name {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #166534;
+    font-size: 0.68rem;
+}
+
+.drop-zone-hint {
+    display: block;
+    font-size: 0.68rem;
+    color: #94a3b8;
+}
+
+.drop-zone.loaded {
+    background: #dcfce7;
+    border-color: #86efac;
+    border-style: solid;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    border-style: solid;
+}
+
+/* ────────────────────────────────────────────
+   MAIN EDITOR AREA
+──────────────────────────────────────────── */
+
 .editor-area {
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-width: 0; /* Prevents flexbox overflow issues */
+    min-width: 0;
 }
 
-/* Reusing your Grid Styles */
-.toolbar { padding: 1rem; background: white; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-
-.container { 
-    flex: 1; 
-    overflow-y: auto; 
-    padding: 2rem; 
-}
-
-.controls {
-    display: flex;
-    justify-content: center;
-    gap: 2px; /* Tiny gap between Left/Right groups */
-    padding-top: 4px; /* Align with text top */
-    opacity: 0;
-    transition: opacity 0.1s;
-    height: 100%; /* Fill cell height */
-    align-items: flex-start; /* items start at top */
-}
-
-.controls:hover { opacity: 1; }
-
-.ctrl-btn { 
-    border: none;
-    background: transparent;
-    color: #cbd5e1;
-    cursor: pointer;
-    
-    /* MICRO SIZE */
-    font-size: 9px;       /* Very small icon */
-    height: 13px;         /* Fixed tiny height */
-    width: 14px;          /* Fixed tiny width */
-    padding: 0;
-    line-height: 13px;    /* Vertically center */
-    border-radius: 2px;
+.toolbar {
+    padding: 0.75rem 1rem;
+    background: white;
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 6px;
+    flex-wrap: nowrap;
 }
 
-.ctrl-btn:hover { 
-    color: var(--primary); 
-    background: #e2e8f0; 
-    border-radius: 2px;
+.container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
 }
 
-.btn-del:hover { 
-    color: #ef4444; 
-    background: #fee2e2; 
-}
+/* ────────────────────────────────────────────
+   GRID  (dynamic columns set via JS)
+──────────────────────────────────────────── */
 
-.btn-backup:hover { color: #6366f1; background: #e0e7ff; }
-
-.btn-primary { 
-    background: var(--primary); 
-    color: white; 
-    border: none; 
-    padding: 6px 12px; 
-    border-radius: 4px; 
-    cursor: pointer; 
-    width: 100%; 
-}
-
-.btn-primary:hover { 
-    background: #1d4ed8; 
-}
-
-.empty-state { 
-    text-align: center; 
-    color: #94a3b8; 
-    font-size: 0.9rem; 
-    padding-top: 2rem; 
-}
-
-.sync-dot {
-    height: 8px;
-    width: 8px;
-    background-color: #bbb; /* Gray = No file linked */
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 6px;
-    transition: background-color 0.3s;
-}
-
-.sync-dot.green { background-color: #22c55e; box-shadow: 0 0 4px #86efac; } /* Synced */
-.sync-dot.red { background-color: #ef4444; box-shadow: 0 0 4px #fca5a5; }   /* Unsaved */
-.sync-dot.orange { 
-    background-color: #f97316; 
-    box-shadow: 0 0 4px #fdba74; 
-    animation: pulse 2s infinite; /* Make it pulse so you notice! */
-}
-
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-/* 1. The Container */
 .grid {
     display: grid;
-    /* [LineNum] [Left Text] [Controls] [Right Text] */
-    grid-template-columns: 25px 1fr 40px 1fr;
+    /* grid-template-columns is set dynamically by renderEditor() */
     gap: 0;
-    
-    background-color: white; 
-    border: 1px solid #e2e8f0; 
+
+    background-color: white;
+    border: 1px solid #e2e8f0;
     border-radius: 4px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    
-    margin: 0 auto; 
-    padding: 40px; /* Document padding */
+
+    margin: 0 auto;
+    padding: 40px;
     max-width: 95%; /* Default, overridden by slider */
     transition: max-width 0.2s ease;
 }
 
-/* Text Cells */
-.cell-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; }
+/* ── Line Numbers ─────────────────────────── */
+
+.line-num {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    text-align: right;
+    padding: 6px 6px 4px 0;
+    line-height: 1.6;
+    font-family: monospace;
+    user-select: none;
+}
+
+/* ── Text Cells ───────────────────────────── */
+
+.cell-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
 
 .cell {
     background: transparent;
@@ -256,19 +260,233 @@ body {
     font-size: 1rem;
     line-height: 1.6;
     color: #1e293b;
-    font-family: 'Georgia', 'Cambria', serif; 
+    font-family: 'Georgia', 'Cambria', serif;
     outline: none;
     min-height: 1.5rem;
 }
+
 .cell:focus {
     background-color: #f8fafc;
-    box-shadow: inset 3px 0 0 #3b82f6; /* Blue marker */
+    box-shadow: inset 3px 0 0 #3b82f6;
 }
-.cell.empty-row::before { content: "\200b"; } /* Force height */
 
-/* --- BACKUP SYSTEM --- */
+.cell.empty-row::before { content: "\200b"; } /* Force min height */
 
-/* The toggle button inside the cell */
+/* ── Row Controls ─────────────────────────── */
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    padding-top: 4px;
+    opacity: 0;
+    transition: opacity 0.1s;
+    height: 100%;
+    align-items: flex-start;
+}
+
+.controls:hover { opacity: 1; }
+
+.ctrl-btn {
+    border: none;
+    background: transparent;
+    color: #cbd5e1;
+    cursor: pointer;
+    font-size: 9px;
+    height: 13px;
+    width: 14px;
+    padding: 0;
+    line-height: 13px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ctrl-btn:hover {
+    color: var(--primary);
+    background: #e2e8f0;
+}
+
+.btn-del:hover    { color: #ef4444; background: #fee2e2; }
+.btn-backup:hover { color: #6366f1; background: #e0e7ff; }
+
+/* ────────────────────────────────────────────
+   TOOLBAR BUTTONS
+──────────────────────────────────────────── */
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.btn-primary:hover { background: #1d4ed8; }
+
+.btn-save {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background: #f8fafc;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-save:hover { background: #e2e8f0; }
+
+/* +/− column control buttons */
+.col-ctrl-btn {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background: #f8fafc;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.col-ctrl-btn:hover:not(:disabled) { background: #e2e8f0; border-color: #94a3b8; }
+.col-ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+#btnToggleSidebar {
+    border: none !important;
+    background: transparent !important;
+    font-size: 1.2rem !important;
+    padding: 4px 8px !important;
+    cursor: pointer;
+}
+
+#btnToggleSidebar:hover { background: #f1f5f9 !important; }
+
+/* ────────────────────────────────────────────
+   SYNC DOTS
+──────────────────────────────────────────── */
+
+.sync-dot {
+    height: 8px;
+    width: 8px;
+    background-color: #bbb;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+    transition: background-color 0.3s;
+    flex-shrink: 0;
+}
+
+.sync-dot.green  { background-color: #22c55e; box-shadow: 0 0 4px #86efac; }
+.sync-dot.red    { background-color: #ef4444; box-shadow: 0 0 4px #fca5a5; }
+.sync-dot.orange {
+    background-color: #f97316;
+    box-shadow: 0 0 4px #fdba74;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%   { opacity: 1; }
+    50%  { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* ────────────────────────────────────────────
+   MISC
+──────────────────────────────────────────── */
+
+.empty-state {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    padding-top: 2rem;
+}
+
+/* ────────────────────────────────────────────
+   MERGE / SPLIT  (row-span feature)
+──────────────────────────────────────────── */
+
+/**
+ * A cell that spans multiple grid rows gets a subtle left-border accent
+ * so the user can see it's merged at a glance.
+ */
+.cell-wrapper.is-merged {
+    border-left: 3px solid #a5b4fc; /* indigo-300 */
+    border-radius: 0 0 4px 4px;
+    background: linear-gradient(to bottom, #f5f3ff 0%, #fff 40%);
+}
+
+/**
+ * Merge-bar: a tiny row of buttons that appears at the bottom of a cell
+ * on hover.  Hidden by default; revealed via the parent :hover.
+ */
+.merge-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 2px;
+    padding: 2px 4px 3px 4px;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    pointer-events: none;   /* invisible until parent is hovered */
+}
+
+.cell-wrapper:hover .merge-bar {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Merge-down button (⤵) */
+.merge-btn {
+    font-size: 11px !important;
+    width: 16px !important;
+    height: 16px !important;
+    color: #94a3b8;
+}
+
+.merge-btn:hover {
+    color: #6366f1 !important;
+    background: #e0e7ff !important;
+}
+
+/* Split button (⤴) */
+.split-btn {
+    font-size: 11px !important;
+    width: 16px !important;
+    height: 16px !important;
+    color: #94a3b8;
+}
+
+.split-btn:hover {
+    color: #f97316 !important;
+    background: #ffedd5 !important;
+}
+
+/**
+ * Empty padding cells that fill grid rows when a column has
+ * fewer total rows than the tallest column.
+ */
+.cell-pad {
+    min-height: 1.5rem;
+    background: repeating-linear-gradient(
+        135deg,
+        transparent,
+        transparent 4px,
+        #f1f5f9 4px,
+        #f1f5f9 5px
+    );
+    opacity: 0.5;
+    border-radius: 2px;
+}
+
+/* ────────────────────────────────────────────
+   BACKUP SYSTEM
+──────────────────────────────────────────── */
 
 .backup-container {
     display: none;
@@ -278,14 +496,11 @@ body {
     padding: 8px;
     background: #f8fafc;
     border-radius: 6px;
-    border-left: 2px solid #6366f1; /* Changed to match button hover color */
+    border-left: 2px solid #6366f1;
 }
 
-.backup-container.open {
-    display: flex;
-}
+.backup-container.open { display: flex; }
 
-/* Individual Card */
 .backup-card {
     display: flex;
     gap: 5px;
@@ -300,7 +515,7 @@ body {
     flex: 1;
     border: none;
     outline: none;
-    resize: none; /* Auto-expand handled by JS ideally, but let's keep simple */
+    resize: none;
     font-family: inherit;
     background: transparent;
 }
@@ -311,6 +526,7 @@ body {
     font-size: 1rem;
     padding: 0 4px;
 }
+
 .backup-btn-del:hover { color: #ef4444; }
 
 .btn-add-backup {
@@ -323,38 +539,29 @@ body {
     cursor: pointer;
     text-align: center;
 }
+
 .btn-add-backup:hover {
     border-color: #94a3b8;
     color: #334155;
 }
 
-/* style.css */
-
 .backup-count {
     position: absolute;
     top: 4px;
     right: 4px;
-    
-    /* Small & Circular-ish look */
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
     border-radius: 10px;
-    
-    /* Colors (Indigo) */
     background-color: #e0e7ff;
     color: #6366f1;
     border: 1px solid #c7d2fe;
-    
-    /* Font */
     font-size: 0.7rem;
     font-weight: 600;
     line-height: 16px;
     text-align: center;
-    
-    /* Interaction */
     cursor: pointer;
-    z-index: 5; /* Sit on top of text */
+    z-index: 5;
     user-select: none;
     transition: all 0.2s;
 }
@@ -366,12 +573,73 @@ body {
     transform: scale(1.1);
 }
 
-#btnToggleSidebar {
-    border: none !important; /* Remove border */
-    background: transparent !important; /* Transparent background */
-    font-size: 1.2rem !important;
-    padding: 4px 8px !important;
-}
-#btnToggleSidebar:hover {
-    background: #f1f5f9 !important;
+/* ────────────────────────────────────────────
+   PRINT  (@media print)
+   Goal: render the full scrollable content,
+   not just the visible viewport rectangle.
+──────────────────────────────────────────── */
+
+@media print {
+    /* Remove viewport-height / overflow constraints so the browser
+       can lay out the complete document for printing. */
+    html, body {
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    /* The flex app shell must relax so children can stretch to full height. */
+    .app-layout {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    /* Hide UI chrome that has no place on paper. */
+    .sidebar,
+    .toolbar {
+        display: none !important;
+    }
+
+    /* The main editing column becomes a plain block. */
+    .editor-area {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    /* Remove the scrollable container constraint — let everything paint. */
+    .container {
+        overflow: visible !important;
+        height: auto !important;
+        padding: 0 !important;
+    }
+
+    /* The grid card: no shadow, full width, auto height. */
+    .grid {
+        box-shadow: none !important;
+        border: none !important;
+        max-width: 100% !important;
+        padding: 16px !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    /* Hide all interactive overlays. */
+    .controls,
+    .merge-bar,
+    .backup-container,
+    .backup-count {
+        display: none !important;
+    }
+
+    /* Avoid cutting a paragraph in half between pages. */
+    .cell-wrapper {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    /* Subdue line numbers on paper. */
+    .line-num {
+        color: #aaa !important;
+    }
 }

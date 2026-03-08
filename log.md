@@ -10,3 +10,5 @@ todos:
     [ ] first do it locally
     [ ] later I should host a server. By granting each user an access code and an id, they should be able to comment at text-line-level.
 [x] enable backup translations
+[ ] side by side pdf export
+[ ] global search

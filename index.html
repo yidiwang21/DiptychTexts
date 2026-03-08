@@ -9,24 +9,17 @@
 <body>
 
 <div class="app-layout">
-    
+
     <aside class="sidebar">
         <div style="padding: 10px; background: #e2e8f0; border-bottom: 1px solid #cbd5e1; display:flex; gap:5px;">
             <button onclick="saveProject()" style="flex:1; font-size:0.8rem;">Save Project</button>
             <button onclick="document.getElementById('projectLoader').click()" style="flex:1; font-size:0.8rem;">Load Project</button>
             <button onclick="closeProject()" style="flex:1; font-size:0.8rem;" title="Close">Close</button>
-    
             <input type="file" id="projectLoader" style="display:none" accept=".json" onchange="loadProject(this)">
         </div>
 
         <div class="sidebar-header">
-            <!-- <input type="text" id="projectNameInput" value="Untitled Project" 
-                style="width:100%; font-size:1.1rem; font-weight:bold; border:1px solid transparent; background:transparent; margin-bottom:0.5rem; padding:4px;"
-                onfocus="this.style.background='#fff'; this.style.borderColor='#cbd5e1'"
-                onblur="this.style.background='transparent'; this.style.borderColor='transparent'"
-                onchange="project.name = this.value"
-            > -->
-            <input type="text" id="projectNameInput" value="Untitled Project" 
+            <input type="text" id="projectNameInput" value="Untitled Project"
                 style="width:100%; font-size:1.1rem; font-weight:bold; border:1px solid transparent; background:transparent; margin-bottom:0.5rem; padding:4px;"
                 onfocus="this.style.background='#fff'; this.style.borderColor='#cbd5e1'"
                 onblur="this.style.background='transparent'; this.style.borderColor='transparent'"
@@ -34,7 +27,7 @@
             >
             <button id="btnAddPair" class="btn-primary" style="width:100%">+ New Chapter</button>
         </div>
-        
+
         <div id="pairList" class="pair-list">
             <div class="empty-state">No chapters yet. Click "+ New Chapter".</div>
         </div>
@@ -45,45 +38,36 @@
     </aside>
 
     <main class="editor-area">
-        <!-- <div class="toolbar">
-            <h3 id="activeChapterTitle" style="margin:0; color:#334155;">Select a chapter to edit</h3>
-            <div style="display:flex; gap:10px;">
-                <button id="btnSaveLeft" class="btn-save" disabled>💾 Save Left</button>
-                <button id="btnSaveRight" class="btn-save" disabled>💾 Save Right</button>
-            </div>
-        </div> -->
-
         <div class="toolbar">
-            <button id="btnToggleSidebar" title="Toggle Sidebar" style="background:none; border:none; cursor:pointer; font-size:1.2rem; margin-right:10px;">
-                ☰
-            </button>
+
+            <!-- Sidebar toggle -->
+            <button id="btnToggleSidebar" title="Toggle Sidebar">☰</button>
+
+            <!-- Chapter title + refresh -->
             <div style="flex:1; display:flex; align-items:center; gap:10px;">
                 <h3 id="activeChapterTitle" style="margin:0;">Select a chapter</h3>
-                <!-- <button onclick="refreshActivePair()" title="Reload from disk" style="font-size:0.8rem; padding:2px 8px;">↻ Refresh</button> -->
-                <button id="btnRefresh" title="Reload from disk" style="font-size:0.8rem; padding:2px 8px;">↻ Refresh</button>
+                <button id="btnRefresh" title="Reload files from disk" style="font-size:0.8rem; padding:2px 8px;">↻ Refresh</button>
+                <button id="btnRelink" title="Reconnect source files after page reload" style="font-size:0.8rem; padding:2px 8px;">🔗 Relink</button>
             </div>
 
-            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
-                <button id="btnSaveLeft" class="btn-save" disabled>💾 Save Left</button>
-                <div style="display:flex; align-items:center;">
-                    <span id="dotLeft" class="sync-dot" title="Sync Status"></span> <div id="statsLeft" style="font-size:10px; color:#64748b; font-family:monospace;"></div>
-                </div>
+            <!-- Column count controls -->
+            <div style="display:flex; align-items:center; gap:5px; border-right:1px solid #e2e8f0; padding-right:14px; margin-right:6px;">
+                <span style="font-size:0.75rem; color:#64748b;">Columns:</span>
+                <button id="btnRemoveCol" class="col-ctrl-btn" title="Remove last column" disabled>−</button>
+                <span id="colCount" style="font-size:0.85rem; font-weight:600; min-width:14px; text-align:center;">–</span>
+                <button id="btnAddCol" class="col-ctrl-btn" title="Add a column" disabled>+</button>
             </div>
 
-            <div style="width:20px;"></div>
+            <!-- Dynamic save buttons (populated by updateToolbar()) -->
+            <div id="saveButtonsContainer" style="display:flex; align-items:center; gap:0;"></div>
 
-            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
-                <button id="btnSaveRight" class="btn-save" disabled>💾 Save Right</button>
-                <div style="display:flex; align-items:center;">
-                    <span id="dotRight" class="sync-dot" title="Sync Status"></span> <div id="statsRight" style="font-size:10px; color:#64748b; font-family:monospace;"></div>
-                </div>
-            </div>
-
+            <!-- Width slider -->
             <div style="display:flex; align-items:center; gap:8px; margin-left:15px; border-left:1px solid #e2e8f0; padding-left:15px;">
                 <span style="font-size:0.75rem; color:#64748b;">Width:</span>
                 <input type="range" id="widthSlider" min="50" max="100" value="95" style="width:100px; cursor:pointer;">
             </div>
-        </div>
+
+        </div><!-- /.toolbar -->
 
         <div class="container">
             <div id="grid" class="grid">
