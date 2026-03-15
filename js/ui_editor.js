@@ -4,6 +4,33 @@ import { project, MAX_COLUMNS, MIN_COLUMNS } from './state.js';
 
 
 // ─────────────────────────────────────────────
+//  TEXT UTILITIES
+// ─────────────────────────────────────────────
+
+/**
+ * Returns true when the text is predominantly CJK
+ * (Chinese / Japanese / Korean / other logographic scripts).
+ *
+ * Matches the following Unicode blocks:
+ *   U+3040–U+30FF  Hiragana + Katakana
+ *   U+3400–U+9FFF  CJK Extension A + CJK Unified Ideographs (bulk of Chinese)
+ *   U+AC00–U+D7AF  Hangul Syllables
+ *   U+F900–U+FAFF  CJK Compatibility Ideographs
+ *
+ * The check: if more than 30 % of non-whitespace characters fall in those
+ * ranges, we treat the column as CJK-dominant and show a character count.
+ * A minimum of 10 non-whitespace chars is required to avoid false positives
+ * on very short strings that happen to contain a single CJK character.
+ */
+function isCJKDominant(text) {
+    const nonWs   = text.replace(/\s/g, '');
+    if (nonWs.length < 10) return false;
+    const cjkHits = (nonWs.match(/[\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF\uF900-\uFAFF]/g) || []).length;
+    return cjkHits / nonWs.length > 0.3;
+}
+
+
+// ─────────────────────────────────────────────
 //  SPAN HELPERS
 // ─────────────────────────────────────────────
 
@@ -594,26 +621,51 @@ export function updateToolbar() {
             const saveBtn     = document.createElement('button');
             saveBtn.id        = `btn-save-col-${i}`;
             saveBtn.className = 'btn-save';
-            saveBtn.innerText = col.handle ? `💾 ${col.name}` : '💾 Save As…';
+            saveBtn.style.padding = '4px 6px';
+            saveBtn.innerText = '💾';
+            saveBtn.title     = col.handle ? `Save: ${col.name}` : 'Save As…';
             saveBtn.disabled  = col.hidden;
             saveBtn.onclick   = () => window.triggerSave(i);
 
-            topRow.append(eyeBtn, saveBtn);
+            // Download column content as a text file
+            const dlBtn     = document.createElement('button');
+            dlBtn.className = 'btn-save';
+            dlBtn.style.padding = '4px 6px';
+            dlBtn.title     = `Download column ${i + 1} as text file`;
+            dlBtn.innerText = '⬇';
+            dlBtn.onclick   = () => window.downloadColumn(i);
+
+            // Delete this column permanently (requires confirmation)
+            const delColBtn     = document.createElement('button');
+            delColBtn.className = 'btn-save btn-del-col';
+            delColBtn.style.padding = '4px 6px';
+            delColBtn.title     = `Delete column ${i + 1}`;
+            delColBtn.innerText = '🗑';
+            delColBtn.disabled  = pair.columns.length <= MIN_COLUMNS;
+            delColBtn.onclick   = () => window.deleteColumn(pair.id, i);
+
+            topRow.append(eyeBtn, saveBtn, dlBtn, delColBtn);
 
             // ── Status row: dot + word/char count ──────────────────────────
             const statusRow = document.createElement('div');
-            statusRow.style.cssText = 'display:flex; align-items:center;';
+            statusRow.style.cssText = 'display:flex; align-items:center; gap:2px; max-width:160px;';
 
             const dot = document.createElement('span');
             dot.id        = `dot-col-${i}`;
             dot.className = 'sync-dot';
             dot.title     = 'Sync Status';
 
+            const nameLabel = document.createElement('span');
+            nameLabel.id        = `name-col-${i}`;
+            nameLabel.title     = col.name || '';
+            nameLabel.style.cssText = 'font-size:10px; color:#475569; max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace;';
+            nameLabel.innerText = col.name || '(no file)';
+
             const stats = document.createElement('div');
             stats.id            = `stats-col-${i}`;
-            stats.style.cssText = 'font-size:10px; color:#64748b; font-family:monospace;';
+            stats.style.cssText = 'font-size:10px; color:#94a3b8; font-family:monospace;';
 
-            statusRow.append(dot, stats);
+            statusRow.append(dot, nameLabel, stats);
             group.append(topRow, statusRow);
             container.appendChild(group);
         });
@@ -651,9 +703,16 @@ export function updateStats() {
         }
 
         if (stats) {
-            const fullText  = (col.data || []).join(' ');
-            const wordCount = fullText.split(/\s+/).filter(w => w.length).length;
-            stats.innerText = `${wordCount}w / ${fullText.length}c`;
+            const fullText = (col.data || []).join(' ');
+            if (isCJKDominant(fullText)) {
+                // CJK text: show non-whitespace character count
+                const charCount = fullText.replace(/\s/g, '').length;
+                stats.innerText = ` · ${charCount}字`;
+            } else {
+                // Latin / other: show word count
+                const wordCount = fullText.split(/\s+/).filter(w => w.length).length;
+                stats.innerText = ` · ${wordCount}w`;
+            }
         }
     });
 }
@@ -681,4 +740,94 @@ export function syncEditorToState(id) {
     pair.columns.forEach((col, i) => {
         if (newData[i].length > 0) col.data = newData[i];
     });
+}
+
+
+// ─────────────────────────────────────────────
+//  KEYBOARD NAVIGATION
+// ─────────────────────────────────────────────
+
+/**
+ * Move editor focus to an adjacent cell or column.
+ *
+ * @param {'left'|'right'|'up'|'down'} direction
+ *
+ * 'left'/'right' — move to the same dataIdx in the previous/next *visible* column.
+ *                  Clamps to the target column's last row if it has fewer rows.
+ * 'up'/'down'    — move to the previous/next dataIdx in the same column.
+ *
+ * The function reads the currently focused .cell element to determine the
+ * current column and row position, so it is a no-op if focus is not in a cell.
+ */
+export function navigateCell(direction) {
+    const active = document.activeElement;
+    if (!active || !active.classList.contains('cell')) return;
+
+    const origColIdx = parseInt(active.dataset.col, 10);
+    if (isNaN(origColIdx)) return;
+
+    // Parse dataIdx from the wrapper id: "cell-wrapper-{colIdx}-{dataIdx}"
+    const wrapper = active.closest('[id^="cell-wrapper-"]');
+    if (!wrapper) return;
+    const match = wrapper.id.match(/^cell-wrapper-(\d+)-(\d+)$/);
+    if (!match) return;
+    const dataIdx = parseInt(match[2], 10);
+
+    const pair = project.pairs.find(p => p.id === project.activePairId);
+    if (!pair) return;
+
+    const visibleCols = pair.columns
+        .map((col, i) => ({ col, origIdx: i }))
+        .filter(({ col }) => !col.hidden);
+
+    const visibleIdx = visibleCols.findIndex(({ origIdx }) => origIdx === origColIdx);
+    if (visibleIdx === -1) return;
+
+    let targetColOrigIdx, targetDataIdx;
+
+    if (direction === 'left') {
+        if (visibleIdx === 0) return;
+        const tv = visibleCols[visibleIdx - 1];
+        targetColOrigIdx = tv.origIdx;
+        targetDataIdx    = Math.min(dataIdx, tv.col.data.length - 1);
+
+    } else if (direction === 'right') {
+        if (visibleIdx === visibleCols.length - 1) return;
+        const tv = visibleCols[visibleIdx + 1];
+        targetColOrigIdx = tv.origIdx;
+        targetDataIdx    = Math.min(dataIdx, tv.col.data.length - 1);
+
+    } else if (direction === 'up') {
+        if (dataIdx === 0) return;
+        targetColOrigIdx = origColIdx;
+        targetDataIdx    = dataIdx - 1;
+
+    } else if (direction === 'down') {
+        const col = pair.columns[origColIdx];
+        if (dataIdx >= col.data.length - 1) return;
+        targetColOrigIdx = origColIdx;
+        targetDataIdx    = dataIdx + 1;
+
+    } else {
+        return;
+    }
+
+    const targetWrapper = document.getElementById(
+        `cell-wrapper-${targetColOrigIdx}-${targetDataIdx}`);
+    if (!targetWrapper) return;
+
+    const targetCell = targetWrapper.querySelector('.cell');
+    if (!targetCell) return;
+
+    targetCell.focus();
+
+    // Place cursor at the end of the target cell
+    try {
+        const range = document.createRange();
+        const sel   = window.getSelection();
+        range.selectNodeContents(targetCell);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+    } catch { /* non-fatal */ }
 }

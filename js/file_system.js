@@ -89,6 +89,100 @@ export async function getDirectoryHandle() {
     });
 }
 
+// ── Project file handle (for persistent project save) ─────────────────────────
+// Stores the FileSystemFileHandle for the project's .json file so that
+// subsequent "Save Project" calls can write back to the same location without
+// showing a new save dialog.
+
+export async function saveProjectFileHandle(handle) {
+    try {
+        const db = await getDB();
+        const tx = db.transaction('handles', 'readwrite');
+        tx.objectStore('handles').put(handle, 'project_file');
+    } catch (e) {
+        console.warn('saveProjectFileHandle failed:', e.message);
+    }
+}
+
+export async function getProjectFileHandle() {
+    const db = await getDB();
+    return new Promise((resolve) => {
+        const tx  = db.transaction('handles', 'readonly');
+        const req = tx.objectStore('handles').get('project_file');
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror   = () => resolve(null);
+    });
+}
+
+export async function removeProjectFileHandle() {
+    try {
+        const db = await getDB();
+        const tx = db.transaction('handles', 'readwrite');
+        tx.objectStore('handles').delete('project_file');
+    } catch (e) { /* ignore */ }
+}
+
+/**
+ * Write serialized project JSON to a FileSystemFileHandle.
+ * Returns { success, error? }.
+ */
+export async function writeProjectFile(handle, projectData) {
+    try {
+        const writable = await handle.createWritable();
+        await writable.write(JSON.stringify(projectData, null, 2));
+        await writable.close();
+        return { success: true, filename: handle.name };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+}
+
+// ── Rotating auto-save snapshots (IndexedDB fallback) ─────────────────────────
+// Keeps the last MAX_AUTOSAVES full project snapshots in the app_state store.
+// These survive even if the browser loses file permissions.
+
+const MAX_AUTOSAVES = 3;
+
+/**
+ * Prepend a new snapshot to the rotating autosave list in IndexedDB.
+ * Trims the list to MAX_AUTOSAVES entries.
+ */
+export async function saveAutoSnapshot(projectData) {
+    try {
+        const db = await getDB();
+
+        // Read existing slots
+        const slots = await new Promise((resolve) => {
+            const tx  = db.transaction('app_state', 'readonly');
+            const req = tx.objectStore('app_state').get('autosave_slots');
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror   = () => resolve([]);
+        });
+
+        slots.unshift({ timestamp: Date.now(), data: projectData });
+        if (slots.length > MAX_AUTOSAVES) slots.length = MAX_AUTOSAVES;
+
+        const tx2 = db.transaction('app_state', 'readwrite');
+        tx2.objectStore('app_state').put(slots, 'autosave_slots');
+    } catch (e) {
+        console.warn('saveAutoSnapshot failed:', e.message);
+    }
+}
+
+/**
+ * Return the last MAX_AUTOSAVES snapshots, newest first.
+ * Each entry: { timestamp: number, data: projectData }
+ */
+export async function getAutoSnapshots() {
+    const db = await getDB();
+    return new Promise((resolve) => {
+        const tx  = db.transaction('app_state', 'readonly');
+        const req = tx.objectStore('app_state').get('autosave_slots');
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror   = () => resolve([]);
+    });
+}
+
 // ── Per-column file handles ───────────────────────────────────────────────────
 // Key pattern: "file_{pairId}_{colIdx}"
 
@@ -118,6 +212,27 @@ export async function removeFileHandle(pairId, colIdx) {
         const tx = db.transaction('handles', 'readwrite');
         tx.objectStore('handles').delete(`file_${pairId}_${colIdx}`);
     } catch (e) { /* ignore */ }
+}
+
+/**
+ * After deleting the column at deletedIdx, shift the stored file handles for
+ * columns (deletedIdx + 1) … (oldColCount - 1) down by one position so that
+ * the IndexedDB keys stay in sync with pair.columns indices.
+ *
+ * Call this BEFORE splicing pair.columns so that oldColCount is still correct.
+ */
+export async function shiftFileHandlesAfterDelete(pairId, deletedIdx, oldColCount) {
+    // Remove the deleted column's handle first
+    await removeFileHandle(pairId, deletedIdx);
+
+    // Move each subsequent handle one position to the left
+    for (let i = deletedIdx + 1; i < oldColCount; i++) {
+        const handle = await getFileHandle(pairId, i);
+        if (handle) {
+            await saveFileHandle(pairId, i - 1, handle);
+        }
+        await removeFileHandle(pairId, i);
+    }
 }
 
 

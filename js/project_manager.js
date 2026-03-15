@@ -5,7 +5,10 @@ import {
     loadAppState, saveAppState,
     getDirectoryHandle, saveDirectoryHandle,
     getFileHandle, saveFileHandle, removeFileHandle,
-    parseFileContent
+    shiftFileHandlesAfterDelete,
+    parseFileContent,
+    saveProjectFileHandle, getProjectFileHandle, removeProjectFileHandle,
+    writeProjectFile, saveAutoSnapshot
 } from './file_system.js';
 
 
@@ -217,13 +220,40 @@ export function removeColumn(pairId) {
     return true;
 }
 
+/**
+ * Delete the column at colIdx from a chapter (any position, not just last).
+ * Re-indexes the stored file handles in IndexedDB so remaining columns stay
+ * in sync. Returns true on success.
+ *
+ * Note: this operation cannot be undone via the undo stack because re-indexing
+ * IndexedDB handles cannot be reliably reversed. A confirmation prompt should
+ * be shown by the caller.
+ */
+export async function deleteColumn(pairId, colIdx) {
+    const pair = project.pairs.find(p => p.id === pairId);
+    if (!pair || pair.columns.length <= MIN_COLUMNS) return false;
+    if (colIdx < 0 || colIdx >= pair.columns.length) return false;
+
+    const oldCount = pair.columns.length;
+
+    // Shift handles in IndexedDB before splicing the array
+    await shiftFileHandlesAfterDelete(pairId, colIdx, oldCount);
+
+    // Remove the column from memory
+    pair.columns.splice(colIdx, 1);
+
+    saveAppState();
+    return true;
+}
+
 
 // ─────────────────────────────────────────────
 //  PROJECT SAVE / LOAD
 // ─────────────────────────────────────────────
 
-export function saveProject() {
-    const projectData = {
+/** Build the serializable project payload (no handles, no runtime state). */
+function _buildProjectData() {
+    return {
         name: project.name,
         pairs: project.pairs.map(p => ({
             id:      p.id,
@@ -237,18 +267,107 @@ export function saveProject() {
             }))
         }))
     };
+}
 
-    const filename = (project.name || "project")
-        .replace(/[^a-z0-9]/gi, '_').toLowerCase() + ".json";
-    const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: "application/json" });
-    const a    = document.createElement('a');
-    a.href     = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
+/**
+ * Save the project to a .json file.
+ *
+ * First call: shows a Save As picker and stores the resulting
+ *   FileSystemFileHandle in IndexedDB for future saves.
+ * Subsequent calls: writes directly to the stored handle —
+ *   no dialog shown unless browser permissions were revoked.
+ *
+ * Returns { success, filename?, cancelled?, error? }.
+ */
+export async function saveProject() {
+    const projectData = _buildProjectData();
+
+    // ── Try to reuse a stored handle ───────────────────────────────────
+    let handle = await getProjectFileHandle();
+
+    if (handle) {
+        const opts = { mode: 'readwrite' };
+        let perm = await handle.queryPermission(opts);
+        if (perm !== 'granted') {
+            try { perm = await handle.requestPermission(opts); }
+            catch (e) { perm = 'denied'; }
+        }
+        if (perm !== 'granted') {
+            // Permissions permanently revoked — clear and fall through to picker
+            await removeProjectFileHandle();
+            handle = null;
+        }
+    }
+
+    // ── First save (or after permission loss): show picker ─────────────
+    if (!handle) {
+        try {
+            const suggestedName = (project.name || 'project')
+                .replace(/[<>:"/\\|?*]/g, '')
+                .trim()
+                .replace(/\s+/g, '_')
+                .toLowerCase() + '.json';
+
+            handle = await window.showSaveFilePicker({
+                suggestedName,
+                types: [{
+                    description: 'DiptychTexts Project',
+                    accept: { 'application/json': ['.json'] }
+                }]
+            });
+            await saveProjectFileHandle(handle);
+        } catch (err) {
+            // User cancelled the dialog
+            return { success: false, cancelled: true };
+        }
+    }
+
+    // ── Write to file ───────────────────────────────────────────────────
+    const result = await writeProjectFile(handle, projectData);
+    if (result.success) {
+        await saveAutoSnapshot(projectData);   // also update IndexedDB fallback
+    }
+    return result;
+}
+
+/**
+ * Silently auto-save the project.
+ *
+ * - Always writes a rotating snapshot to IndexedDB (no user gesture needed).
+ * - Also writes to the stored project file handle IF permission is still
+ *   'granted' (queryPermission only — never shows a dialog).
+ *
+ * Safe to call from a setInterval.
+ * Returns { success, noHandle?, noPermission?, error? }.
+ */
+export async function autoSaveProject() {
+    if (project.pairs.length === 0) return { success: false, empty: true };
+
+    const projectData = _buildProjectData();
+
+    // Always save a rotating IndexedDB snapshot as a fallback
+    await saveAutoSnapshot(projectData);
+
+    // Try silent file write (only if permission already granted)
+    const handle = await getProjectFileHandle();
+    if (!handle) return { success: false, noHandle: true };
+
+    let perm;
+    try { perm = await handle.queryPermission({ mode: 'readwrite' }); }
+    catch (e) { return { success: false, error: e.message }; }
+
+    if (perm !== 'granted') return { success: false, noPermission: true };
+
+    return writeProjectFile(handle, projectData);
 }
 
 export async function loadProject(file) {
     if (!file) return { success: false };
+
+    // Clear any previously stored project file handle.
+    // The loaded project is a different file, so we don't know the save target
+    // yet — the user will be prompted when they first click "Save Project".
+    await removeProjectFileHandle();
 
     return new Promise((resolve) => {
         const reader = new FileReader();
