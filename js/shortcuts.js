@@ -17,14 +17,16 @@ export const SHORTCUT_GROUPS = ['Navigation', 'Editor', 'File', 'App'];
 /** Master list of configurable shortcuts. */
 export const DEFAULT_SHORTCUTS = {
     // Navigation ────────────────────────────────────────────────────────
-    'nav-left':  { key: 'j', meta: false, ctrl: true,  shift: true,  alt: false,
-                   label: 'Move to Left Column',  group: 'Navigation' },
-    'nav-right': { key: 'k', meta: false, ctrl: true,  shift: true,  alt: false,
-                   label: 'Move to Right Column', group: 'Navigation' },
-    'nav-up':    { key: 'p', meta: false, ctrl: true,  shift: false, alt: false,
-                   label: 'Move to Cell Above',   group: 'Navigation' },
-    'nav-down':  { key: 'n', meta: false, ctrl: true,  shift: false, alt: false,
-                   label: 'Move to Cell Below',   group: 'Navigation' },
+    'nav-left':   { key: 'j', meta: false, ctrl: true,  shift: true,  alt: false,
+                    label: 'Move to Left Column',       group: 'Navigation' },
+    'nav-right':  { key: 'k', meta: false, ctrl: true,  shift: true,  alt: false,
+                    label: 'Move to Right Column',      group: 'Navigation' },
+    'nav-up':     { key: 'p', meta: false, ctrl: true,  shift: false, alt: false,
+                    label: 'Move to Cell Above',        group: 'Navigation' },
+    'nav-down':   { key: 'n', meta: false, ctrl: true,  shift: false, alt: false,
+                    label: 'Move to Cell Below',        group: 'Navigation' },
+    'recenter':   { key: 'l', meta: false, ctrl: true,  shift: false, alt: false,
+                    label: 'Recenter View (cycle)',     group: 'Navigation' },
 
     // Editor ────────────────────────────────────────────────────────────
     'find':      { key: 'f', meta: true,  ctrl: false, shift: false, alt: false,

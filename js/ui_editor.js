@@ -744,6 +744,57 @@ export function syncEditorToState(id) {
 
 
 // ─────────────────────────────────────────────
+//  RECENTER VIEW  (Emacs Ctrl+L style)
+// ─────────────────────────────────────────────
+
+/** Cycles: 0 = center, 1 = top, 2 = bottom */
+let _recenterState  = 0;
+let _recenterTarget = null;   // tracks last element so moving focus resets the cycle
+
+/**
+ * Scroll the editor container so the currently focused cell sits at the
+ * center, top, or bottom of the visible area — cycling on each call,
+ * resetting to center whenever the focused element changes.
+ */
+export function recenterCurrentLine() {
+    const active    = document.activeElement;
+    const target    = active?.closest('.cell-wrapper') ?? active;
+    const container = document.querySelector('.container');
+    if (!container || !target || target === document.body) return;
+
+    // Reset cycle if focus moved to a different element
+    if (target !== _recenterTarget) {
+        _recenterState  = 0;
+        _recenterTarget = target;
+    }
+
+    const cRect = container.getBoundingClientRect();
+    const tRect = target.getBoundingClientRect();
+    const PAD   = 20;
+
+    // Target's top edge relative to the container's scrollable origin
+    const targetTop = tRect.top - cRect.top + container.scrollTop;
+    const cHeight   = container.clientHeight;
+
+    let scrollTo;
+    switch (_recenterState) {
+        case 0:  // center
+            scrollTo = targetTop - cHeight / 2 + tRect.height / 2;
+            break;
+        case 1:  // top
+            scrollTo = targetTop - PAD;
+            break;
+        case 2:  // bottom
+            scrollTo = targetTop + tRect.height - cHeight + PAD;
+            break;
+    }
+
+    _recenterState = (_recenterState + 1) % 3;
+    container.scrollTo({ top: Math.max(0, scrollTo), behavior: 'smooth' });
+}
+
+
+// ─────────────────────────────────────────────
 //  KEYBOARD NAVIGATION
 // ─────────────────────────────────────────────
 

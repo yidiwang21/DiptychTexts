@@ -58,7 +58,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const restored = await ProjectManager.restoreSession();
     if (restored) {
         refreshAllUI();
-        console.log("Session restored!");
+
+        // After silent restore, check if any named columns are still unlinked
+        // (browser revoked file permissions after restart — needs a user gesture).
+        const unlinkedCount = project.pairs.reduce((n, p) =>
+            n + p.columns.filter(col => col.name && !col.handle).length, 0);
+
+        if (unlinkedCount > 0) _showRelinkBanner(unlinkedCount);
     }
 
     // ── Restore project save-status label ────────────────────────────────
@@ -163,6 +169,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             EditorUI.navigateCell('down');
             return;
         }
+        if (Shortcuts.matches(e, 'recenter')) {
+            e.preventDefault();
+            EditorUI.recenterCurrentLine();
+            return;
+        }
 
         // Escape — close any open floating panel (if focus is outside it)
         if (e.key === 'Escape') {
@@ -210,29 +221,70 @@ function handleNewPair() {
 }
 
 async function handleRefresh() {
-    if (!project.activePairId) return;
-
     const btn = document.getElementById('btnRefresh');
     if (btn) { btn.disabled = true; btn.innerText = '↻ …'; }
 
-    // Step 1: Reconnect any columns that have a stored IndexedDB handle but
-    // lost their live in-memory reference (e.g. after a page reload where the
-    // browser needs to re-prompt for permission). This is what the old "Relink"
-    // button used to do — now it's folded in automatically here.
-    await ProjectManager.relinkPair(project.activePairId);
+    // Step 1: Relink ALL chapters at once.
+    // Chrome revokes file-handle permissions globally on browser restart, so
+    // if one chapter needs re-permission, every chapter does.  One user gesture
+    // (this button click) is enough to re-grant permission for the whole project.
+    const relinked = await ProjectManager.relinkAllFiles();
+
+    // Dismiss the startup banner if it's still visible
+    document.getElementById('_relinkBanner')?.remove();
 
     // Step 2: Sync editor DOM → state so we don't lose unsaved typing.
-    EditorUI.syncEditorToState(project.activePairId);
+    if (project.activePairId) {
+        EditorUI.syncEditorToState(project.activePairId);
 
-    // Step 3: Re-read the latest file contents from disk for all linked columns.
-    const result = await FileSystem.refreshActivePair();
-
-    if (result.success) {
-        EditorUI.renderEditor();
-        EditorUI.updateStats();
+        // Step 3: Re-read latest file contents for the active chapter.
+        const result = await FileSystem.refreshActivePair();
+        if (result.success) {
+            EditorUI.renderEditor();
+            EditorUI.updateStats();
+        }
     }
 
+    refreshAllUI();   // update dots + toolbar for all columns / chapters
+
     if (btn) { btn.disabled = false; btn.innerText = '↻ Refresh'; }
+    if (relinked > 0) showSaveToast(`↻ ${relinked} file${relinked > 1 ? 's' : ''} reconnected`, 2200);
+}
+
+/**
+ * Show a non-intrusive banner when the browser revoked file permissions
+ * and the user needs to click Refresh to restore all links.
+ */
+function _showRelinkBanner(count) {
+    if (document.getElementById('_relinkBanner')) return;
+
+    const banner = document.createElement('div');
+    banner.id = '_relinkBanner';
+    banner.style.cssText = [
+        'position:fixed', 'bottom:18px', 'left:50%', 'transform:translateX(-50%)',
+        'z-index:1500', 'background:#fef3c7', 'border:1px solid #fcd34d',
+        'border-radius:8px', 'padding:10px 18px', 'display:flex',
+        'align-items:center', 'gap:12px', 'box-shadow:0 4px 16px rgba(0,0,0,0.12)',
+        'font-size:0.82rem', 'color:#78350f', 'max-width:460px'
+    ].join(';');
+
+    banner.innerHTML = `
+        <span>⚠ ${count} file${count > 1 ? 's' : ''} lost permission after browser restart.</span>
+        <button id="_relinkBannerBtn" style="
+            padding:4px 12px; background:#d97706; color:#fff; border:none;
+            border-radius:5px; cursor:pointer; font-size:0.8rem; white-space:nowrap;
+            flex-shrink:0;">
+            ↻ Reconnect all
+        </button>
+        <button id="_relinkBannerX" style="
+            background:none; border:none; cursor:pointer; color:#92400e;
+            font-size:1rem; padding:0 2px; flex-shrink:0;" title="Dismiss">×</button>
+    `;
+
+    document.body.appendChild(banner);
+
+    document.getElementById('_relinkBannerBtn').onclick = handleRefresh;
+    document.getElementById('_relinkBannerX').onclick   = () => banner.remove();
 }
 
 // ── Column +/− handlers ──────────────────────────────────────────────────────
