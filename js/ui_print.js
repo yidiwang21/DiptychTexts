@@ -78,15 +78,74 @@ function _refreshPanel() {
     saCb.addEventListener('change', () => {
         document.querySelectorAll('.pr-chapter-cb')
             .forEach(cb => { cb.checked = saCb.checked; });
+        document.querySelectorAll('.pr-section-cb')
+            .forEach(cb => { cb.checked = saCb.checked; });
     });
     const saLbl   = _label('pr-sa-chapters', 'Select all');
     saRow.append(saCb, saLbl);
     chSec.appendChild(saRow);
 
-    // One row per chapter
     const chList  = document.createElement('div');
     chList.className = 'pr-item-list';
-    pairs.forEach(pair => {
+
+    const sections = project.sections || [];
+
+    // ── Sections with their chapters ────────────────────────────────────
+    sections.forEach(sec => {
+        const secPairs = pairs.filter(p => p.sectionId === sec.id);
+        if (secPairs.length === 0) return;
+
+        // Section row (acts as group header + toggle)
+        const secRow = document.createElement('div');
+        secRow.className = 'pr-section-group-row';
+
+        const secCb  = _checkbox(null, true, 'pr-section-cb', sec.id);
+        secCb.addEventListener('change', () => {
+            // Toggle all children
+            secPairs.forEach(p => {
+                const cb = document.querySelector(`.pr-chapter-cb[value="${p.id}"]`);
+                if (cb) cb.checked = secCb.checked;
+            });
+            _syncSelectAll('.pr-chapter-cb', 'pr-sa-chapters');
+        });
+
+        const secLbl = document.createElement('span');
+        secLbl.className   = 'pr-section-group-name';
+        secLbl.textContent = '📁 ' + sec.name;
+        secRow.append(secCb, secLbl);
+        chList.appendChild(secRow);
+
+        // Indented chapter rows under section
+        secPairs.forEach(pair => {
+            const row = document.createElement('label');
+            row.className = 'pr-check-item pr-check-item-indented';
+            const cb  = _checkbox(null, true, 'pr-chapter-cb', pair.id);
+            cb.addEventListener('change', () => {
+                _syncSelectAll('.pr-chapter-cb', 'pr-sa-chapters');
+                // Update section checkbox to reflect children state
+                const children = secPairs.map(p =>
+                    document.querySelector(`.pr-chapter-cb[value="${p.id}"]`)
+                ).filter(Boolean);
+                const checkedCount = children.filter(c => c.checked).length;
+                secCb.checked       = checkedCount > 0;
+                secCb.indeterminate = checkedCount > 0 && checkedCount < children.length;
+            });
+            const sp  = document.createElement('span');
+            sp.textContent = pair.name;
+            row.append(cb, sp);
+            chList.appendChild(row);
+        });
+    });
+
+    // ── Unsectioned chapters ─────────────────────────────────────────────
+    const unsectioned = pairs.filter(p => !p.sectionId);
+    if (unsectioned.length > 0 && sections.length > 0) {
+        const divRow = document.createElement('div');
+        divRow.className   = 'pr-section-group-row pr-unsectioned-label';
+        divRow.textContent = '— Unsectioned —';
+        chList.appendChild(divRow);
+    }
+    unsectioned.forEach(pair => {
         const row = document.createElement('label');
         row.className = 'pr-check-item';
         const cb  = _checkbox(null, true, 'pr-chapter-cb', pair.id);
@@ -96,6 +155,7 @@ function _refreshPanel() {
         row.append(cb, sp);
         chList.appendChild(row);
     });
+
     chSec.appendChild(chList);
 
     // ── Column section ───────────────────────────────────────────────────

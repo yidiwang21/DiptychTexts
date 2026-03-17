@@ -346,9 +346,11 @@ export async function saveAppState() {
     const cleanState = {
         name:         project.name,
         activePairId: project.activePairId,
+        sections: (project.sections || []).map(s => ({ id: s.id, name: s.name })),
         pairs: project.pairs.map(p => ({
-            id:   p.id,
-            name: p.name,
+            id:        p.id,
+            name:      p.name,
+            sectionId: p.sectionId || null,
             columns: p.columns.map(col => ({
                 name:         col.name,
                 data:         col.data,

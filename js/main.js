@@ -57,6 +57,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ── Session restore ─────────────────────────────────────────────────
     const restored = await ProjectManager.restoreSession();
     if (restored) {
+        // Auto-expand the active chapter on startup
+        if (project.activePairId) SidebarUI.expandPair(project.activePairId);
         refreshAllUI();
 
         // After silent restore, check if any named columns are still unlinked
@@ -212,11 +214,18 @@ function refreshAllUI() {
     EditorUI.updateStats();
 }
 
+// Allow sidebar to re-attach drop handlers without a full refreshAllUI
+// (used when toggling section collapse without changing editor state)
+window._reattachDropHandlers = () => {
+    SidebarUI.attachAllDropHandlers(() => refreshAllUI());
+};
+
 // ── Chapter (pair) handlers ──────────────────────────────────────────────────
 
 function handleNewPair() {
     const newId = ProjectManager.createNewPair();
     project.activePairId = newId;
+    SidebarUI.expandPair(newId);   // Auto-expand new chapters so files can be dropped
     refreshAllUI();
 }
 
@@ -494,7 +503,10 @@ window.loadProject = async (input) => {
         } else if (result.linkedCount !== undefined) {
             alert(`Project loaded & ${result.linkedCount} files linked automatically.`);
         }
-        if (project.pairs.length > 0) project.activePairId = project.pairs[0].id;
+        if (project.pairs.length > 0) {
+            project.activePairId = project.pairs[0].id;
+            SidebarUI.expandPair(project.activePairId);
+        }
         refreshAllUI();
     }
     input.value = '';
@@ -509,7 +521,9 @@ window.deletePair = (id) => {
 
 window.setActivePair = (id) => {
     if (project.activePairId) EditorUI.syncEditorToState(project.activePairId);
+    const isNewPair = id !== project.activePairId;
     project.activePairId = id;
+    if (isNewPair) SidebarUI.expandPair(id);  // Auto-expand only when switching chapters
     refreshAllUI();
     FindReplace.refreshIfOpen();   // Keep column checkboxes in sync when chapter changes
 };
@@ -517,6 +531,29 @@ window.setActivePair = (id) => {
 window.updatePairName = (id, val) => SidebarUI.updatePairName(id, val);
 
 window.updateProjectName = (newName) => { project.name = newName; };
+
+// ── Section handlers ─────────────────────────────────────────────────────────
+
+window.addSection = () => {
+    ProjectManager.createSection('New Section');
+    refreshAllUI();
+};
+
+window.deleteSection = (id) => {
+    if (!confirm('Delete this section? Its chapters will become unsectioned.')) return;
+    ProjectManager.deleteSection(id);
+    refreshAllUI();
+};
+
+window.renameSection = (id, newName) => {
+    ProjectManager.renameSection(id, newName);
+    refreshAllUI();
+};
+
+window.movePairToSection = (pairId, sectionId) => {
+    ProjectManager.movePairToSection(pairId, sectionId || null);
+    refreshAllUI();
+};
 
 // Grid control globals (called inline from rendered HTML)
 window.modifyGrid      = EditorUI.modifyGrid;

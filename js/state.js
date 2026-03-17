@@ -1,6 +1,6 @@
 // js/state.js
 
-export const APP_VERSION = "0.9.7";
+export const APP_VERSION = "0.9.9";
 
 export const APP_CONSTANTS = {
     DB_NAME: 'TranslationToolDB',
@@ -14,5 +14,6 @@ export const MIN_COLUMNS = 1;
 export const project = {
     name: "Untitled Project",
     pairs: [],          // Array of chapter objects
+    sections: [],       // Array of { id, name } section objects
     activePairId: null  // ID of the currently open chapter
 };

@@ -49,7 +49,11 @@
                  title="Project save location — click 'Save Project' to set">
                 📄 Not saved to file yet
             </div>
-            <button id="btnAddPair" class="btn-primary" style="width:100%">+ New Chapter</button>
+            <div style="display:flex; gap:6px;">
+                <button id="btnAddPair" class="btn-primary" style="flex:1">+ Chapter</button>
+                <button onclick="window.addSection()" class="btn-secondary"
+                        style="flex:1" title="Add a new section to group chapters">+ Section</button>
+            </div>
         </div>
 
         <div id="pairList" class="pair-list">

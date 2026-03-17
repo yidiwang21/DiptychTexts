@@ -62,6 +62,134 @@ body {
     background: #f8fafc;
 }
 
+/* ── Section Groups ───────────────────────── */
+
+.section-group {
+    margin-bottom: 6px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 6px;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #374151;
+    transition: background 0.15s;
+}
+
+.section-header:hover { background: #e2e8f0; }
+
+.section-chevron {
+    font-size: 0.7rem;
+    color: #6b7280;
+    flex-shrink: 0;
+}
+
+.section-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.section-name-input {
+    flex: 1;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid var(--primary);
+    border-radius: 3px;
+    padding: 1px 4px;
+    outline: none;
+    background: white;
+}
+
+.section-rename,
+.section-del {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+}
+
+.section-header:hover .section-rename,
+.section-header:hover .section-del { opacity: 1; }
+
+.section-rename:hover { color: #2563eb; }
+.section-del:hover    { color: #dc2626; }
+
+.section-children {
+    padding-left: 10px;
+    padding-top: 4px;
+}
+
+.section-group.collapsed .section-children {
+    display: none;
+}
+
+.section-empty {
+    font-size: 0.72rem;
+    color: #9ca3af;
+    font-style: italic;
+    padding: 4px 6px 6px;
+}
+
+.section-unsectioned-label {
+    font-size: 0.72rem;
+    color: #9ca3af;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 6px 2px 3px;
+}
+
+/* ── Pair section selector (shown in expanded card) ── */
+
+.pair-section-area {
+    padding: 4px 0 0;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 4px;
+}
+
+.pair-section-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+}
+
+.pair-section-label {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+.pair-section-select {
+    font-size: 0.72rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 3px;
+    padding: 1px 3px;
+    color: #475569;
+    background: #fafafa;
+    cursor: pointer;
+    flex: 1;
+    min-width: 0;
+}
+
+.pair-section-select:focus { outline: none; border-color: var(--primary); }
+
 /* ── Sidebar Cards ────────────────────────── */
 
 .pair-card {
@@ -88,7 +216,25 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 0;
+}
+
+.pair-card.expanded .pair-header {
     margin-bottom: 8px;
+}
+
+.pair-chevron {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-right: 4px;
+    flex-shrink: 0;
+    user-select: none;
+    transition: color 0.15s;
+}
+
+.pair-card.active .pair-chevron,
+.pair-card:hover .pair-chevron {
+    color: #64748b;
 }
 
 .pair-title {
@@ -107,9 +253,13 @@ body {
 /* ── Drop Zones ───────────────────────────── */
 
 .drop-zones {
-    display: flex;
+    display: none;          /* Hidden by default (collapsed) */
     gap: 5px;
-    flex-wrap: wrap; /* Allow wrapping for 3-4 columns */
+    flex-wrap: wrap;        /* Allow wrapping for 3-4 columns */
+}
+
+.pair-card.expanded .drop-zones {
+    display: flex;          /* Show when card is expanded */
 }
 
 .drop-zone {
@@ -335,6 +485,18 @@ body {
 }
 
 .btn-primary:hover { background: #1d4ed8; }
+
+.btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.btn-secondary:hover { background: #e2e8f0; }
 
 .btn-save {
     font-size: 0.8rem;
@@ -1025,6 +1187,33 @@ body {
     transition: background 0.1s;
 }
 .pr-check-item:hover { background: #f1f5f9; }
+
+.pr-check-item-indented {
+    padding-left: 22px;  /* Indent chapter rows under section headers */
+}
+
+.pr-section-group-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #374151;
+    background: #f8fafc;
+    border-radius: 3px;
+    margin-top: 4px;
+}
+
+.pr-unsectioned-label {
+    font-size: 0.72rem;
+    color: #9ca3af;
+    font-style: italic;
+    background: none;
+    margin-top: 6px;
+}
+
+.pr-section-group-name { flex: 1; }
 
 .pr-select-all-row {
     display: flex;

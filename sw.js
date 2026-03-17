@@ -5,7 +5,7 @@
 // offline resilience of the app shell itself (not user files, which live on
 // disk and are accessed via the File System Access API).
 
-const CACHE_NAME = 'diptych-v0.9.7';
+const CACHE_NAME = 'diptych-v0.9.9';
 
 // All the static assets that make up the app shell.
 // Note: './' is intentionally omitted — it can return a redirect rather than

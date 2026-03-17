@@ -42,6 +42,7 @@ export async function restoreSession() {
 
     project.name         = savedState.name || "Untitled Project";
     project.activePairId = savedState.activePairId;
+    project.sections     = (savedState.sections || []).map(s => ({ id: s.id, name: s.name }));
     project.pairs        = sanitizeProjectData(savedState.pairs).map(p => ({
         ...p,
         columns: p.columns.map(col => ({
@@ -171,11 +172,12 @@ async function _tryRelinkHandles({ requireGesture }) {
 //  PAIR (CHAPTER) CRUD
 // ─────────────────────────────────────────────
 
-export function createNewPair() {
+export function createNewPair(sectionId = null) {
     const id = Date.now().toString();
     const newPair = {
         id,
         name: `Chapter ${project.pairs.length + 1}`,
+        sectionId: sectionId || null,
         columns: [createColumn(), createColumn()]   // Default: 2 columns
     };
     project.pairs.push(newPair);
@@ -192,6 +194,37 @@ export function deletePair(id) {
     project.pairs        = project.pairs.filter(p => p.id !== id);
     if (project.activePairId === id) project.activePairId = null;
     saveAppState();
+}
+
+
+// ─────────────────────────────────────────────
+//  SECTION CRUD
+// ─────────────────────────────────────────────
+
+export function createSection(name) {
+    const id = 'sec_' + Date.now().toString();
+    project.sections.push({ id, name: name || 'New Section' });
+    saveAppState();
+    return id;
+}
+
+export function deleteSection(id) {
+    // Move all chapters in this section to unsectioned
+    project.pairs.forEach(p => {
+        if (p.sectionId === id) p.sectionId = null;
+    });
+    project.sections = project.sections.filter(s => s.id !== id);
+    saveAppState();
+}
+
+export function renameSection(id, newName) {
+    const sec = project.sections.find(s => s.id === id);
+    if (sec) { sec.name = newName; saveAppState(); }
+}
+
+export function movePairToSection(pairId, sectionId) {
+    const pair = project.pairs.find(p => p.id === pairId);
+    if (pair) { pair.sectionId = sectionId || null; saveAppState(); }
 }
 
 /**
@@ -254,10 +287,12 @@ export async function deleteColumn(pairId, colIdx) {
 /** Build the serializable project payload (no handles, no runtime state). */
 function _buildProjectData() {
     return {
-        name: project.name,
+        name:     project.name,
+        sections: (project.sections || []).map(s => ({ id: s.id, name: s.name })),
         pairs: project.pairs.map(p => ({
-            id:      p.id,
-            name:    p.name,
+            id:        p.id,
+            name:      p.name,
+            sectionId: p.sectionId || null,
             columns: p.columns.map(col => ({
                 name:    col.name    || null,
                 data:    col.data    || [],
@@ -375,7 +410,8 @@ export async function loadProject(file) {
             try {
                 const data = JSON.parse(e.target.result);
 
-                project.name  = data.name || "Untitled Project";
+                project.name     = data.name || "Untitled Project";
+                project.sections = (data.sections || []).map(s => ({ id: s.id, name: s.name }));
                 project.pairs = sanitizeProjectData(data.pairs).map(p => ({
                     ...p,
                     columns: p.columns.map(col => ({
@@ -495,6 +531,6 @@ function sanitizeProjectData(pairs) {
                 externalChange: false
             }));
 
-        return { ...p, columns: sanitizedColumns };
+        return { ...p, sectionId: p.sectionId || null, columns: sanitizedColumns };
     });
 }
