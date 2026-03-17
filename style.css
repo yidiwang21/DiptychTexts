@@ -158,9 +158,14 @@ body {
 /* ── Pair section selector (shown in expanded card) ── */
 
 .pair-section-area {
+    display: none;          /* Hidden when card is collapsed */
     padding: 4px 0 0;
     border-top: 1px solid #f1f5f9;
     margin-top: 4px;
+}
+
+.pair-card.expanded .pair-section-area {
+    display: block;
 }
 
 .pair-section-row {

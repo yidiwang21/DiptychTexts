@@ -534,24 +534,24 @@ window.updateProjectName = (newName) => { project.name = newName; };
 
 // ── Section handlers ─────────────────────────────────────────────────────────
 
-window.addSection = () => {
-    ProjectManager.createSection('New Section');
+window.addSection = async () => {
+    await ProjectManager.createSection('New Section');
     refreshAllUI();
 };
 
-window.deleteSection = (id) => {
+window.deleteSection = async (id) => {
     if (!confirm('Delete this section? Its chapters will become unsectioned.')) return;
-    ProjectManager.deleteSection(id);
+    await ProjectManager.deleteSection(id);
     refreshAllUI();
 };
 
-window.renameSection = (id, newName) => {
-    ProjectManager.renameSection(id, newName);
+window.renameSection = async (id, newName) => {
+    await ProjectManager.renameSection(id, newName);
     refreshAllUI();
 };
 
-window.movePairToSection = (pairId, sectionId) => {
-    ProjectManager.movePairToSection(pairId, sectionId || null);
+window.movePairToSection = async (pairId, sectionId) => {
+    await ProjectManager.movePairToSection(pairId, sectionId || null);
     refreshAllUI();
 };
 

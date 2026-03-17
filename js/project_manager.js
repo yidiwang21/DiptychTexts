@@ -201,30 +201,30 @@ export function deletePair(id) {
 //  SECTION CRUD
 // ─────────────────────────────────────────────
 
-export function createSection(name) {
+export async function createSection(name) {
     const id = 'sec_' + Date.now().toString();
     project.sections.push({ id, name: name || 'New Section' });
-    saveAppState();
+    await saveAppState();
     return id;
 }
 
-export function deleteSection(id) {
+export async function deleteSection(id) {
     // Move all chapters in this section to unsectioned
     project.pairs.forEach(p => {
         if (p.sectionId === id) p.sectionId = null;
     });
     project.sections = project.sections.filter(s => s.id !== id);
-    saveAppState();
+    await saveAppState();
 }
 
-export function renameSection(id, newName) {
+export async function renameSection(id, newName) {
     const sec = project.sections.find(s => s.id === id);
-    if (sec) { sec.name = newName; saveAppState(); }
+    if (sec) { sec.name = newName; await saveAppState(); }
 }
 
-export function movePairToSection(pairId, sectionId) {
+export async function movePairToSection(pairId, sectionId) {
     const pair = project.pairs.find(p => p.id === pairId);
-    if (pair) { pair.sectionId = sectionId || null; saveAppState(); }
+    if (pair) { pair.sectionId = sectionId || null; await saveAppState(); }
 }
 
 /**

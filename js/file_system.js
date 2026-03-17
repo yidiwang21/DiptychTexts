@@ -362,8 +362,12 @@ export async function saveAppState() {
         }))
     };
 
-    tx.objectStore('app_state').put(cleanState, 'current_session');
-    return tx.complete;
+    return new Promise((resolve, reject) => {
+        const req = tx.objectStore('app_state').put(cleanState, 'current_session');
+        tx.oncomplete = () => resolve();
+        tx.onerror    = () => reject(tx.error);
+        tx.onabort    = () => reject(tx.error);
+    });
 }
 
 export async function loadAppState() {
